@@ -1,0 +1,230 @@
+.sign-up-page,
+.registration-placeholder {
+  --signup-ink: #192d2f;
+  --signup-muted: #617174;
+  --signup-faint: #8c999a;
+  --signup-teal: #237c79;
+  --signup-teal-dark: #174f51;
+  --signup-teal-pale: #e4f1ee;
+  --signup-canvas: #f6f3ec;
+  --signup-paper: #fffdfa;
+  --signup-line: #dce4e0;
+  min-height: 100vh;
+  color: var(--signup-ink);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(48, 132, 127, .08), transparent 30%),
+    var(--signup-canvas);
+}
+
+.sign-up-page *,
+.sign-up-page *::before,
+.sign-up-page *::after,
+.registration-placeholder *,
+.registration-placeholder *::before,
+.registration-placeholder *::after { box-sizing: border-box; }
+
+.sign-up-page a,
+.registration-placeholder a { -webkit-tap-highlight-color: transparent; }
+
+.sign-up-page a:focus-visible,
+.registration-placeholder a:focus-visible {
+  outline: 3px solid rgba(35, 124, 121, .23);
+  outline-offset: 4px;
+}
+
+.sign-up-header {
+  width: min(100% - 64px, 1280px);
+  min-height: 105px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 0 auto;
+}
+
+.sign-up-header .sign-in-brand > span:first-child { background: rgba(255, 255, 255, .8); }
+.sign-up-header p { margin: 0; color: var(--signup-muted); font-size: 9px; }
+.sign-up-header p a { margin-left: 4px; color: var(--signup-teal-dark); font-weight: 700; text-underline-offset: 3px; }
+
+.sign-up-main {
+  width: min(100% - 64px, 1110px);
+  margin: 0 auto;
+  padding: clamp(58px, 8vh, 94px) 0 60px;
+}
+
+.sign-up-intro { max-width: 760px; margin: 0 auto; text-align: center; animation: signup-intro-in .7s cubic-bezier(.22, 1, .36, 1) both; }
+.sign-up-intro > span { color: var(--signup-teal); font-size: 8px; font-weight: 700; letter-spacing: .17em; }
+.sign-up-intro h1 { margin: 17px 0 0; font-size: clamp(48px, 5vw, 68px); font-weight: 600; letter-spacing: -.062em; line-height: 1; }
+.sign-up-intro p { max-width: 590px; margin: 21px auto 0; color: var(--signup-muted); font-size: 13px; line-height: 1.7; }
+
+.sign-up-role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 58px; }
+
+.sign-up-role-card {
+  position: relative;
+  min-height: 425px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(27px, 3vw, 38px);
+  color: var(--signup-ink);
+  background: rgba(255, 253, 250, .96);
+  border: 1px solid #d8e1dd;
+  border-radius: 20px;
+  box-shadow: 0 14px 40px rgba(24, 53, 54, .06);
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(24px);
+  animation: signup-card-in .7s .16s cubic-bezier(.22, 1, .36, 1) forwards;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease, background .25s ease;
+  overflow: hidden;
+}
+
+.sign-up-role-card--doctor { animation-delay: .26s; }
+.sign-up-role-card::before {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  top: -160px;
+  right: -120px;
+  background: var(--signup-teal-pale);
+  border-radius: 50%;
+  opacity: .7;
+  transition: transform .35s ease;
+}
+
+.sign-up-role-card--doctor::before { background: #edf1f3; }
+.sign-up-role-card:hover,
+.sign-up-role-card.is-selected,
+.sign-up-role-card:focus-visible {
+  border-color: #78aaa4;
+  box-shadow: 0 24px 58px rgba(24, 68, 67, .12);
+  transform: translateY(-7px);
+}
+
+.sign-up-role-card:hover::before,
+.sign-up-role-card.is-selected::before,
+.sign-up-role-card:focus-visible::before { transform: scale(1.12); }
+
+.sign-up-role-card__top { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; }
+.sign-up-role-card__icon { width: 58px; height: 58px; display: grid; place-items: center; color: var(--signup-teal); background: var(--signup-teal-pale); border: 1px solid #d2e5e1; border-radius: 15px; }
+.sign-up-role-card--doctor .sign-up-role-card__icon { color: #426a70; background: #edf2f3; border-color: #dbe4e6; }
+.sign-up-role-card__icon svg { width: 28px; height: 28px; }
+.sign-up-role-card__number { color: #a2adae; font-family: Georgia, serif; font-size: 11px; letter-spacing: .08em; }
+
+.sign-up-role-card__copy { position: relative; z-index: 1; margin-top: 42px; }
+.sign-up-role-card__label { color: var(--signup-teal); font-size: 7px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.sign-up-role-card--doctor .sign-up-role-card__label { color: #52747a; }
+.sign-up-role-card h2 { margin: 12px 0 0; font-size: clamp(29px, 3vw, 38px); font-weight: 600; letter-spacing: -.045em; }
+.sign-up-role-card__copy p { margin: 17px 0 0; color: var(--signup-muted); font-size: 10px; line-height: 1.75; }
+
+.sign-up-role-card__action {
+  position: relative;
+  z-index: 1;
+  min-height: 51px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: auto;
+  padding: 0 17px;
+  color: white;
+  background: var(--signup-teal);
+  border: 1px solid var(--signup-teal);
+  border-radius: 10px;
+  box-shadow: 0 11px 25px rgba(35, 124, 121, .18);
+  font-size: 9px;
+  font-weight: 700;
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.sign-up-role-card--doctor .sign-up-role-card__action { background: #315f64; border-color: #315f64; box-shadow: 0 11px 25px rgba(49, 95, 100, .17); }
+.sign-up-role-card__action svg { width: 16px; height: 16px; transition: transform .18s ease; }
+.sign-up-role-card:hover .sign-up-role-card__action { background: var(--signup-teal-dark); box-shadow: 0 14px 28px rgba(35, 124, 121, .23); }
+.sign-up-role-card--doctor:hover .sign-up-role-card__action { background: #234d52; }
+.sign-up-role-card:hover .sign-up-role-card__action svg { transform: translateX(3px); }
+.sign-up-role-card:active { transform: translateY(-2px) scale(.99); }
+.sign-up-role-card:active .sign-up-role-card__action { transform: scale(.985); }
+
+.sign-up-footer {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 18px 30px;
+  color: var(--signup-faint);
+  border-top: 1px solid rgba(213, 222, 218, .75);
+  font-size: 8px;
+  text-align: center;
+}
+
+.sign-up-footer svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--signup-teal); }
+.sign-up-footer p { margin: 0; }
+
+.registration-placeholder { display: flex; flex-direction: column; }
+.registration-placeholder__card {
+  width: min(100% - 40px, 650px);
+  display: grid;
+  justify-items: center;
+  margin: auto;
+  padding: clamp(38px, 6vw, 64px);
+  background: rgba(255, 253, 250, .96);
+  border: 1px solid var(--signup-line);
+  border-radius: 22px;
+  box-shadow: 0 24px 65px rgba(24, 53, 54, .09);
+  text-align: center;
+  animation: signup-placeholder-in .65s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.registration-placeholder__icon { width: 64px; height: 64px; display: grid; place-items: center; color: var(--signup-teal); background: var(--signup-teal-pale); border-radius: 17px; }
+.registration-placeholder__icon svg { width: 31px; height: 31px; }
+.registration-placeholder__eyebrow { margin-top: 28px; color: var(--signup-teal); font-size: 8px; font-weight: 700; letter-spacing: .15em; }
+.registration-placeholder h1 { max-width: 520px; margin: 16px 0 0; font-size: clamp(36px, 5vw, 52px); font-weight: 600; letter-spacing: -.055em; line-height: 1.03; }
+.registration-placeholder__card > p { max-width: 470px; margin: 20px 0 0; color: var(--signup-muted); font-size: 11px; line-height: 1.7; }
+.registration-placeholder__back { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 31px; padding: 0 18px; color: var(--signup-teal-dark); background: var(--signup-teal-pale); border: 1px solid #c8dfda; border-radius: 10px; font-size: 9px; font-weight: 700; text-decoration: none; transition: transform .18s ease, background .18s ease; }
+.registration-placeholder__back:hover { background: #d7ebe7; transform: translateY(-2px); }
+.registration-placeholder__back:active { transform: translateY(0) scale(.985); }
+
+@keyframes signup-intro-in { from { opacity: 0; transform: translateY(16px); } }
+@keyframes signup-card-in { to { opacity: 1; transform: none; } }
+@keyframes signup-placeholder-in { from { opacity: 0; transform: translateY(20px) scale(.98); } }
+
+@media (max-width: 760px) {
+  .sign-up-header { width: min(100% - 36px, 650px); min-height: 82px; }
+  .sign-up-header .sign-in-brand__copy small { display: none; }
+  .sign-up-main { width: min(100% - 36px, 590px); padding: 54px 0 48px; }
+  .sign-up-intro { text-align: left; }
+  .sign-up-intro h1 { font-size: clamp(43px, 12vw, 57px); }
+  .sign-up-intro p { margin-left: 0; font-size: 11px; }
+  .sign-up-role-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 39px; }
+  .sign-up-role-card { min-height: 375px; padding: 27px; }
+  .sign-up-role-card__copy { margin-top: 31px; }
+  .sign-up-role-card h2 { font-size: 33px; }
+  .registration-placeholder { min-height: 100svh; }
+  .registration-placeholder__card { margin-top: 35px; margin-bottom: 50px; }
+}
+
+@media (max-width: 470px) {
+  .sign-up-header { width: calc(100% - 30px); gap: 14px; }
+  .sign-up-header .sign-in-brand > span:first-child { width: 39px; height: 39px; }
+  .sign-up-header p { max-width: 130px; line-height: 1.45; text-align: right; }
+  .sign-up-main { width: calc(100% - 30px); padding-top: 43px; }
+  .sign-up-intro h1 { font-size: 43px; }
+  .sign-up-role-card { min-height: 390px; padding: 23px; border-radius: 17px; }
+  .sign-up-role-card__action { min-height: 55px; padding: 0 12px; font-size: 8px; }
+  .sign-up-footer { align-items: flex-start; padding-right: 20px; padding-left: 20px; line-height: 1.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sign-up-page *,
+  .sign-up-page *::before,
+  .sign-up-page *::after,
+  .registration-placeholder *,
+  .registration-placeholder *::before,
+  .registration-placeholder *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

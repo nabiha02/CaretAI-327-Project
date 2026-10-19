@@ -1,0 +1,276 @@
+.patient-register-page,
+.verify-email-page {
+  --register-ink: #192d2f;
+  --register-muted: #617174;
+  --register-faint: #8c999a;
+  --register-teal: #237c79;
+  --register-teal-dark: #174f51;
+  --register-teal-pale: #e4f1ee;
+  --register-canvas: #f6f3ec;
+  --register-paper: #fffdfa;
+  --register-line: #dce4e0;
+  min-height: 100vh;
+  color: var(--register-ink);
+  background: var(--register-canvas);
+}
+
+.patient-register-page { display: grid; grid-template-columns: minmax(400px, .76fr) minmax(600px, 1.24fr); }
+.patient-register-page *,
+.patient-register-page *::before,
+.patient-register-page *::after,
+.verify-email-page *,
+.verify-email-page *::before,
+.verify-email-page *::after { box-sizing: border-box; }
+.patient-register-page button,
+.patient-register-page input,
+.patient-register-page select,
+.patient-register-page a,
+.verify-email-page button,
+.verify-email-page a { -webkit-tap-highlight-color: transparent; }
+.patient-register-page button:focus-visible,
+.patient-register-page input:focus-visible,
+.patient-register-page select:focus-visible,
+.patient-register-page a:focus-visible,
+.verify-email-page button:focus-visible,
+.verify-email-page a:focus-visible { outline: 3px solid rgba(35, 124, 121, .23); outline-offset: 3px; }
+.patient-register-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.patient-register-story {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(30px, 4vw, 58px);
+  background:
+    radial-gradient(circle at 72% 60%, rgba(48, 132, 127, .14), transparent 32%),
+    linear-gradient(145deg, #f8f5ee 0%, #eaf0ea 100%);
+  border-right: 1px solid rgba(197, 210, 204, .8);
+  overflow: hidden;
+  animation: register-story-in .85s cubic-bezier(.22, 1, .36, 1) both;
+}
+.patient-register-story::before,
+.patient-register-story::after { content: ""; position: absolute; border: 1px solid rgba(35, 124, 121, .1); border-radius: 50%; pointer-events: none; }
+.patient-register-story::before { width: 430px; height: 430px; right: -220px; top: 29%; }
+.patient-register-story::after { width: 610px; height: 610px; right: -320px; top: 20%; }
+.patient-register-story__copy { position: relative; z-index: 2; margin-top: clamp(55px, 7vh, 90px); }
+.patient-register-eyebrow { display: flex; align-items: center; gap: 10px; color: var(--register-teal); font-size: 8px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.patient-register-eyebrow::before { content: ""; width: 28px; height: 1px; background: currentColor; }
+.patient-register-story h1 { max-width: 570px; margin: 18px 0 0; font-size: clamp(43px, 4.2vw, 64px); font-weight: 600; letter-spacing: -.063em; line-height: .98; }
+.patient-register-story h1 em { color: var(--register-teal); font-family: Georgia, serif; font-weight: 400; }
+.patient-register-story__copy > p { max-width: 490px; margin: 22px 0 0; color: #475a5c; font-size: 13px; line-height: 1.7; }
+.patient-register-disclaimer { position: relative; z-index: 2; display: flex; align-items: center; gap: 7px; margin: auto 0 0; padding-top: 25px; color: var(--register-faint); font-size: 8px; }
+.patient-register-disclaimer svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--register-teal); }
+
+.patient-register-preview { position: relative; z-index: 2; width: min(100%, 510px); margin-top: clamp(34px, 5vh, 55px); padding: 20px; background: rgba(255, 255, 255, .88); border: 1px solid rgba(202, 214, 209, .95); border-radius: 16px; box-shadow: 0 22px 55px rgba(24, 53, 54, .1); backdrop-filter: blur(12px); }
+.patient-register-preview__header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 13px; border-bottom: 1px solid #e6ece9; }
+.patient-register-preview__header span { color: var(--register-teal); font-size: 6px; font-weight: 700; letter-spacing: .11em; }
+.patient-register-preview__header i { color: var(--register-faint); font-size: 6px; font-style: normal; }
+.patient-register-preview__steps { position: relative; z-index: 2; display: grid; gap: 5px; margin-top: 9px; }
+.patient-register-preview__steps article { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 11px; min-height: 57px; opacity: 0; transform: translateY(8px); animation: register-step-in .5s forwards; }
+.patient-register-preview__steps article:nth-child(2) { animation-delay: .45s; }
+.patient-register-preview__steps article:nth-child(3) { animation-delay: .75s; }
+.patient-register-preview__dot { width: 30px; height: 30px; display: grid; place-items: center; color: var(--register-teal); background: #f5fbf9; border: 1px solid #a9ccc6; border-radius: 50%; font-size: 6px; font-weight: 700; }
+.patient-register-preview__steps article:first-child .patient-register-preview__dot { color: white; background: var(--register-teal); border-color: var(--register-teal); box-shadow: 0 0 0 5px var(--register-teal-pale); }
+.patient-register-preview__steps article div { display: grid; gap: 2px; }
+.patient-register-preview__steps small { color: var(--register-faint); font-size: 5px; text-transform: uppercase; }
+.patient-register-preview__steps strong { font-size: 8px; }
+.patient-register-preview__steps p { margin: 0; color: var(--register-muted); font-size: 6px; }
+.patient-register-preview__line { position: absolute; z-index: 1; width: 1px; height: 113px; left: 34px; top: 74px; background: #d3dfdb; overflow: hidden; }
+.patient-register-preview__line span { display: block; width: 100%; height: 100%; background: var(--register-teal); transform: scaleY(0); transform-origin: top; animation: register-draw-line 1.2s .3s ease forwards; }
+.patient-register-preview footer { display: flex; align-items: center; gap: 6px; margin-top: 11px; padding-top: 12px; color: #477065; border-top: 1px solid #e7ece9; font-size: 6px; }
+.patient-register-preview footer svg { width: 14px; height: 14px; padding: 2px; color: white; background: #4d937c; border-radius: 50%; }
+
+.patient-register-panel { min-width: 0; min-height: 100vh; padding: 0 clamp(36px, 6vw, 92px) 80px; background: var(--register-paper); }
+.patient-register-panel__top { min-height: 94px; display: flex; align-items: center; justify-content: flex-end; }
+.patient-register-panel__top > p { margin: 0; color: var(--register-muted); font-size: 9px; }
+.patient-register-panel__top > p a { margin-left: 4px; color: var(--register-teal-dark); font-weight: 700; text-underline-offset: 3px; }
+.patient-register-panel__mobile-brand { display: none; }
+.patient-register-card { width: min(100%, 760px); margin: 24px auto 0; }
+.patient-register-back { display: inline-flex; align-items: center; gap: 7px; color: var(--register-muted); font-size: 8px; font-weight: 700; text-decoration: none; transition: color .18s ease, transform .18s ease; }
+.patient-register-back:hover { color: var(--register-teal); transform: translateX(-2px); }
+.patient-register-card__intro { margin-top: 28px; animation: register-form-in .6s .08s cubic-bezier(.22, 1, .36, 1) both; }
+.patient-register-card__intro > span { color: var(--register-teal); font-size: 8px; font-weight: 700; letter-spacing: .16em; }
+.patient-register-card__intro h2 { margin: 13px 0 0; font-size: clamp(42px, 4vw, 56px); font-weight: 600; letter-spacing: -.057em; line-height: 1; }
+.patient-register-card__intro p { margin: 15px 0 0; color: var(--register-muted); font-size: 12px; line-height: 1.6; }
+.patient-register-card form { display: grid; gap: 27px; margin-top: 34px; }
+.patient-register-card form > * { opacity: 0; animation: register-form-in .6s cubic-bezier(.22, 1, .36, 1) forwards; }
+.patient-register-card form > :nth-child(1) { animation-delay: .16s; }
+.patient-register-card form > :nth-child(2) { animation-delay: .23s; }
+.patient-register-card form > :nth-child(3) { animation-delay: .3s; }
+.patient-register-card form > :nth-child(4) { animation-delay: .37s; }
+.patient-register-card form > :nth-child(5) { animation-delay: .43s; }
+
+.patient-register-role { margin: 0; padding: 0; border: 0; }
+.patient-register-role legend { margin-bottom: 9px; color: #304345; font-size: 9px; font-weight: 700; }
+.patient-register-role > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 5px; background: #edf1ee; border-radius: 12px; }
+.patient-register-role button { min-height: 61px; display: grid; align-content: center; gap: 4px; padding: 0 15px; color: var(--register-muted); background: transparent; border: 1px solid transparent; border-radius: 9px; text-align: left; cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease, transform .18s ease; }
+.patient-register-role button:hover { color: var(--register-teal-dark); }
+.patient-register-role button.is-active { color: var(--register-teal-dark); background: white; border-color: #d7e1dd; box-shadow: 0 5px 15px rgba(25, 55, 55, .07); }
+.patient-register-role button:active { transform: scale(.99); }
+.patient-register-role button span { font-size: 10px; font-weight: 700; }
+.patient-register-role button small { color: var(--register-faint); font-size: 7px; }
+
+.patient-register-section { display: grid; gap: 22px; padding-top: 5px; }
+.patient-register-section > header { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; border-bottom: 1px solid var(--register-line); }
+.patient-register-section > header > span { width: 31px; height: 31px; display: grid; place-items: center; flex: 0 0 auto; color: var(--register-teal); background: var(--register-teal-pale); border-radius: 8px; font-size: 7px; font-weight: 700; }
+.patient-register-section > header div { display: grid; gap: 3px; }
+.patient-register-section h3 { margin: 0; font-size: 14px; font-weight: 700; }
+.patient-register-section header p { margin: 0; color: var(--register-faint); font-size: 7px; }
+.patient-register-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 17px; }
+.patient-register-field { min-width: 0; display: grid; align-content: start; }
+.patient-register-field label,
+.patient-register-field__label { color: #304345; font-size: 9px; font-weight: 700; }
+.patient-register-field label > span { color: #a94d4d; }
+.patient-register-field input,
+.patient-register-field select { width: 100%; height: 49px; margin-top: 7px; padding: 0 13px; color: var(--register-ink); background: #fff; border: 1px solid #d6dfdb; border-radius: 9px; box-shadow: 0 1px 2px rgba(23, 55, 54, .02); font: inherit; font-size: 10px; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+.patient-register-field input::placeholder { color: #a1acad; }
+.patient-register-field input:hover,
+.patient-register-field select:hover { border-color: #a9beb9; }
+.patient-register-field input:focus,
+.patient-register-field select:focus { border-color: var(--register-teal); box-shadow: 0 0 0 4px rgba(35, 124, 121, .09); outline: none; }
+.patient-register-field.has-error input,
+.patient-register-field.has-error select { border-color: #b85d5d; background: #fffafa; }
+.patient-register-field__error { min-height: 21px; padding-top: 5px; color: #a94d4d; font-size: 7px; font-weight: 600; animation: register-error-in .22s ease both; }
+.patient-register-password { position: relative; }
+.patient-register-password input { padding-right: 48px; }
+.patient-register-password > button { position: absolute; width: 39px; height: 39px; right: 5px; bottom: 5px; display: grid; place-items: center; color: #6d7c7e; background: transparent; border: 0; border-radius: 7px; cursor: pointer; }
+.patient-register-password > button:hover { color: var(--register-teal); background: var(--register-teal-pale); }
+.patient-register-password svg { width: 17px; height: 17px; }
+.patient-register-requirements { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 6px; color: var(--register-faint); font-size: 6px; }
+.patient-register-requirements span { display: flex; align-items: center; gap: 3px; }
+.patient-register-requirements i { width: 10px; height: 10px; display: grid; place-items: center; border: 1px solid #c3ceca; border-radius: 50%; }
+.patient-register-requirements i svg { width: 7px; height: 7px; opacity: 0; }
+.patient-register-requirements span.is-met { color: #347a62; }
+.patient-register-requirements span.is-met i { color: white; background: #4d937c; border-color: #4d937c; }
+.patient-register-requirements span.is-met i svg { opacity: 1; }
+.patient-register-language { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; height: 49px; margin-top: 7px; padding: 4px; background: #edf1ee; border-radius: 9px; }
+.patient-register-language button { color: var(--register-muted); background: transparent; border: 0; border-radius: 6px; font-size: 9px; font-weight: 600; cursor: pointer; }
+.patient-register-language button.is-active { color: var(--register-teal-dark); background: white; box-shadow: 0 3px 8px rgba(25, 55, 55, .07); }
+
+.patient-register-caregiver { display: grid; grid-template-rows: 0fr; opacity: 0; margin-top: -27px; transition: grid-template-rows .45s cubic-bezier(.22, 1, .36, 1), opacity .3s ease, margin .45s ease; }
+.patient-register-caregiver > section { min-height: 0; overflow: hidden; }
+.patient-register-caregiver.is-open { grid-template-rows: 1fr; opacity: 1; margin-top: 0; }
+.patient-register-note { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; color: #526c68; background: #eff7f5; border: 1px solid #d5e8e3; border-radius: 8px; font-size: 7px; line-height: 1.5; }
+.patient-register-note svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--register-teal); }
+
+.patient-register-terms { position: relative; display: grid; grid-template-columns: 19px 1fr; gap: 9px; align-items: start; cursor: pointer; }
+.patient-register-terms > input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.patient-register-terms > span { width: 18px; height: 18px; display: grid; place-items: center; color: transparent; background: white; border: 1px solid #b9c7c2; border-radius: 5px; transition: background .18s ease, border-color .18s ease; }
+.patient-register-terms > input:checked + span { color: white; background: var(--register-teal); border-color: var(--register-teal); }
+.patient-register-terms > input:focus-visible + span { outline: 3px solid rgba(35, 124, 121, .23); outline-offset: 2px; }
+.patient-register-terms.has-error > span { border-color: #b85d5d; background: #fffafa; }
+.patient-register-terms svg { width: 13px; height: 13px; }
+.patient-register-terms p { margin: 1px 0 0; color: var(--register-muted); font-size: 8px; line-height: 1.55; }
+.patient-register-terms p a { color: var(--register-teal-dark); font-weight: 700; text-underline-offset: 2px; }
+.patient-register-terms p b { color: #a94d4d; }
+.patient-register-terms small { grid-column: 2; min-height: 10px; margin-top: -4px; color: #a94d4d; font-size: 7px; font-weight: 600; }
+
+.patient-register-success { display: grid; grid-template-columns: 38px 1fr; gap: 13px; padding: 17px; color: #315e51; background: #edf7f1; border: 1px solid #cfe5d7; border-radius: 12px; animation: register-success-in .45s cubic-bezier(.22, 1, .36, 1) both !important; }
+.patient-register-success > span { width: 38px; height: 38px; display: grid; place-items: center; color: white; background: #4d937c; border-radius: 50%; }
+.patient-register-success > span svg { width: 20px; height: 20px; }
+.patient-register-success div > small { color: #4d7b69; font-size: 6px; font-weight: 700; letter-spacing: .11em; }
+.patient-register-success h3 { margin: 5px 0 0; color: #285346; font-size: 13px; }
+.patient-register-success p { margin: 6px 0 0; font-size: 8px; line-height: 1.55; }
+.patient-register-success a { width: max-content; display: inline-flex; align-items: center; gap: 6px; margin-top: 11px; color: #225f56; font-size: 8px; font-weight: 700; text-decoration: none; }
+.patient-register-success a svg { width: 13px; height: 13px; transition: transform .18s ease; }
+.patient-register-success a:hover svg { transform: translateX(3px); }
+.patient-register-submit { min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 9px; color: white; background: var(--register-teal); border: 1px solid var(--register-teal); border-radius: 10px; box-shadow: 0 12px 28px rgba(35, 124, 121, .2); font-size: 10px; font-weight: 700; cursor: pointer; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.patient-register-submit:hover { background: var(--register-teal-dark); box-shadow: 0 15px 32px rgba(35, 124, 121, .25); transform: translateY(-2px); }
+.patient-register-submit:active { transform: translateY(0) scale(.985); }
+.patient-register-submit:disabled { color: rgba(255, 255, 255, .75); cursor: wait; transform: none; box-shadow: none; }
+.patient-register-submit svg { width: 16px; height: 16px; }
+.patient-register-spinner { width: 15px; height: 15px; border: 2px solid rgba(255, 255, 255, .35); border-top-color: white; border-radius: 50%; animation: register-spin .7s linear infinite; }
+.patient-register-form-note { margin: -17px 0 0; color: var(--register-faint); font-size: 7px; text-align: center; }
+
+.verify-email-page { min-height: 100svh; display: flex; flex-direction: column; background: radial-gradient(circle at 50% 42%, rgba(48, 132, 127, .1), transparent 30%), var(--register-canvas); }
+.verify-email-page > header { width: min(100% - 64px, 1280px); min-height: 105px; display: flex; align-items: center; justify-content: space-between; gap: 25px; margin: 0 auto; }
+.verify-email-page > header .sign-in-brand > span:first-child { background: rgba(255, 255, 255, .8); }
+.verify-email-page > header p { margin: 0; color: var(--register-muted); font-size: 9px; }
+.verify-email-page > header p a { margin-left: 4px; color: var(--register-teal-dark); font-weight: 700; text-underline-offset: 3px; }
+.verify-email-card { width: min(100% - 36px, 570px); display: grid; justify-items: center; margin: auto; padding: clamp(35px, 6vw, 58px); background: rgba(255, 253, 250, .97); border: 1px solid var(--register-line); border-radius: 22px; box-shadow: 0 24px 65px rgba(24, 53, 54, .1); text-align: center; animation: register-success-in .65s cubic-bezier(.22, 1, .36, 1) both; }
+.verify-email-card__icon { width: 62px; height: 62px; display: grid; place-items: center; color: var(--register-teal); background: var(--register-teal-pale); border-radius: 17px; }
+.verify-email-card__icon svg { width: 29px; height: 29px; }
+.verify-email-card__eyebrow { margin-top: 25px; color: var(--register-teal); font-size: 7px; font-weight: 700; letter-spacing: .15em; }
+.verify-email-card h1 { margin: 13px 0 0; font-size: clamp(39px, 5vw, 52px); font-weight: 600; letter-spacing: -.055em; line-height: 1.02; }
+.verify-email-card > p { margin: 14px 0 0; color: var(--register-muted); font-size: 10px; }
+.verify-email-card__email { margin-top: 18px; padding: 9px 13px; color: var(--register-teal-dark); background: #f0f7f5; border-radius: 20px; font-size: 9px; letter-spacing: .02em; }
+.verify-email-card__confirmation { width: 100%; display: grid; grid-template-columns: 27px 1fr; align-items: center; gap: 9px; margin-top: 18px; padding: 11px; color: #315e51; background: #edf7f1; border: 1px solid #cfe5d7; border-radius: 10px; text-align: left; }
+.verify-email-card__confirmation > svg { width: 27px; height: 27px; padding: 6px; color: white; background: #4d937c; border-radius: 50%; }
+.verify-email-card__confirmation p { margin: 0; font-size: 7px; line-height: 1.5; }
+.verify-email-card__confirmation strong { display: block; color: #285346; font-size: 8px; }
+.verify-email-card__doctor-status { width: 100%; display: grid; gap: 8px; margin-top: 20px; padding: 13px; color: var(--register-muted); background: #f7f9f7; border: 1px solid var(--register-line); border-radius: 11px; text-align: left; }
+.verify-email-card__doctor-status > div { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 8px; }
+.verify-email-card__doctor-status > div > span { width: 22px; height: 22px; display: grid; place-items: center; color: var(--register-teal); background: var(--register-teal-pale); border-radius: 50%; font-size: 7px; font-weight: 700; }
+.verify-email-card__doctor-status p { display: grid; gap: 2px; margin: 0; font-size: 7px; line-height: 1.4; }
+.verify-email-card__doctor-status p strong { color: var(--register-ink); font-size: 8px; }
+.verify-email-card__doctor-status small { margin-top: 2px; padding-top: 9px; color: #76684f; border-top: 1px solid #e2e6e2; font-size: 7px; font-weight: 700; text-align: center; }
+.verify-email-card__notice { display: flex; align-items: flex-start; gap: 9px; margin-top: 22px; padding: 13px; color: #65716d; background: #f4f3ed; border: 1px solid #e4e1d6; border-radius: 10px; text-align: left; }
+.verify-email-card__notice svg { width: 17px; height: 17px; flex: 0 0 auto; color: var(--register-teal); }
+.verify-email-card__notice p { margin: 0; font-size: 8px; line-height: 1.55; }
+.verify-email-card__notice strong { display: block; color: var(--register-ink); }
+.verify-email-card > button { width: 100%; min-height: 50px; margin-top: 22px; color: white; background: var(--register-teal); border: 0; border-radius: 10px; box-shadow: 0 11px 25px rgba(35, 124, 121, .18); font-size: 9px; font-weight: 700; cursor: pointer; transition: transform .18s ease, background .18s ease; }
+.verify-email-card > button:hover { background: var(--register-teal-dark); transform: translateY(-2px); }
+.verify-email-card__feedback { color: #347a62 !important; font-weight: 700; animation: register-error-in .25s ease both; }
+.verify-email-card__back { display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; color: var(--register-teal-dark); font-size: 8px; font-weight: 700; text-decoration: none; }
+.verify-email-page > footer { padding: 28px; color: var(--register-faint); font-size: 7px; text-align: center; }
+
+@keyframes register-story-in { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes register-form-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes register-step-in { to { opacity: 1; transform: none; } }
+@keyframes register-draw-line { to { transform: scaleY(1); } }
+@keyframes register-error-in { from { opacity: 0; transform: translateY(-3px); } }
+@keyframes register-success-in { from { opacity: 0; transform: translateY(12px) scale(.985); } }
+@keyframes register-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1050px) {
+  .patient-register-page { grid-template-columns: minmax(330px, .68fr) minmax(500px, 1.32fr); }
+  .patient-register-story { padding: 35px; }
+  .patient-register-preview__steps p { display: none; }
+  .patient-register-panel { padding-right: 42px; padding-left: 42px; }
+}
+
+@media (max-width: 820px) {
+  .patient-register-page { display: block; }
+  .patient-register-story { display: none; }
+  .patient-register-panel { min-height: 100svh; padding: 0 24px 65px; }
+  .patient-register-panel__top { min-height: 82px; justify-content: space-between; gap: 18px; }
+  .patient-register-panel__mobile-brand { display: block; }
+  .patient-register-panel__mobile-brand .sign-in-brand__copy small { display: none; }
+  .patient-register-card { margin-top: 28px; }
+  .patient-register-card__intro h2 { font-size: clamp(42px, 9vw, 55px); }
+}
+
+@media (max-width: 560px) {
+  .patient-register-panel { padding-right: 15px; padding-left: 15px; }
+  .patient-register-panel__top > p { max-width: 130px; line-height: 1.45; text-align: right; }
+  .patient-register-panel__mobile-brand .sign-in-brand > span:first-child { width: 39px; height: 39px; }
+  .patient-register-card { margin-top: 20px; }
+  .patient-register-card__intro { margin-top: 23px; }
+  .patient-register-card__intro h2 { font-size: 41px; }
+  .patient-register-card form { gap: 24px; }
+  .patient-register-role button { min-height: 64px; padding: 0 10px; }
+  .patient-register-grid { grid-template-columns: 1fr; gap: 2px; }
+  .patient-register-section { gap: 18px; }
+  .patient-register-success { grid-template-columns: 31px 1fr; padding: 13px; }
+  .patient-register-success > span { width: 31px; height: 31px; }
+  .patient-register-success a { width: auto; line-height: 1.4; }
+  .verify-email-page > header { width: calc(100% - 30px); min-height: 82px; }
+  .verify-email-page > header .sign-in-brand__copy small { display: none; }
+  .verify-email-page > header p { max-width: 125px; line-height: 1.45; text-align: right; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .patient-register-page *,
+  .patient-register-page *::before,
+  .patient-register-page *::after,
+  .verify-email-page *,
+  .verify-email-page *::before,
+  .verify-email-page *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

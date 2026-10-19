@@ -1,0 +1,512 @@
+.doctor-verification-page {
+  --verification-ink: #192d2f;
+  --verification-muted: #617174;
+  --verification-faint: #8a9898;
+  --verification-teal: #237c79;
+  --verification-teal-dark: #174f51;
+  --verification-teal-soft: #e4f1ee;
+  --verification-line: #dce4e0;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  color: var(--verification-ink);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(48, 132, 127, 0.12), transparent 32%),
+    linear-gradient(145deg, #f8f5ee, #f4f1ea);
+}
+
+.doctor-verification-page *,
+.doctor-verification-page *::before,
+.doctor-verification-page *::after {
+  box-sizing: border-box;
+}
+
+.doctor-verification-page a,
+.doctor-verification-page button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.doctor-verification-page a:focus-visible,
+.doctor-verification-page button:focus-visible {
+  outline: 3px solid rgba(35, 124, 121, 0.23);
+  outline-offset: 3px;
+}
+
+.doctor-verification-header {
+  width: min(100% - 64px, 1160px);
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto;
+}
+
+.doctor-verification-header .sign-in-brand > span:first-child {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.doctor-verification-header > span {
+  color: var(--verification-faint);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.doctor-verification-card {
+  width: min(100% - 36px, 780px);
+  margin: clamp(14px, 3vh, 34px) auto auto;
+  padding: clamp(30px, 5vw, 52px);
+  background: rgba(255, 253, 250, 0.98);
+  border: 1px solid var(--verification-line);
+  border-radius: 26px;
+  box-shadow: 0 30px 80px rgba(24, 53, 54, 0.11);
+  animation: doctor-verification-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.doctor-verification-hero {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.doctor-verification-icon {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  color: var(--verification-teal);
+  background: var(--verification-teal-soft);
+  border: 1px solid #cfe4df;
+  border-radius: 25px;
+  box-shadow: 0 13px 28px rgba(35, 124, 121, 0.12);
+}
+
+.doctor-verification-icon > span {
+  position: absolute;
+  inset: -8px;
+  border: 1px solid rgba(35, 124, 121, 0.18);
+  border-radius: 30px;
+  animation: doctor-verification-breathe 2.8s ease-in-out infinite;
+}
+
+.doctor-verification-icon svg {
+  width: 43px;
+  height: 43px;
+  stroke-width: 1.7;
+}
+
+.doctor-verification-eyebrow {
+  margin-top: 27px;
+  color: var(--verification-teal);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.doctor-verification-hero h1 {
+  max-width: 620px;
+  margin: 13px 0 0;
+  font-size: clamp(38px, 6vw, 55px);
+  font-weight: 600;
+  letter-spacing: -0.057em;
+  line-height: 1.02;
+}
+
+.doctor-verification-hero p {
+  max-width: 610px;
+  margin: 18px 0 0;
+  color: var(--verification-muted);
+  font-size: 11px;
+  line-height: 1.75;
+}
+
+.doctor-verification-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 30px;
+  padding: 18px 20px;
+  color: #665a40;
+  background: linear-gradient(110deg, #f8f3e7, #faf7ef);
+  border: 1px solid #e8dec6;
+  border-radius: 13px;
+}
+
+.doctor-verification-status > div {
+  display: grid;
+  gap: 4px;
+}
+
+.doctor-verification-status > div span {
+  color: #8b7e64;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.doctor-verification-status strong {
+  font-size: 13px;
+}
+
+.doctor-verification-status__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  color: #74613a;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid #eadfc7;
+  border-radius: 20px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.doctor-verification-status__pill i {
+  width: 7px;
+  height: 7px;
+  background: #b58a3d;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(181, 138, 61, 0.14);
+  animation: doctor-verification-pulse 2.6s ease-in-out infinite;
+}
+
+.doctor-verification-progress {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doctor-verification-progress::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  right: 16.5%;
+  left: 16.5%;
+  height: 1px;
+  background: var(--verification-line);
+}
+
+.doctor-verification-progress li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  text-align: center;
+  opacity: 0;
+  animation: doctor-verification-step-in 0.45s ease forwards;
+}
+
+.doctor-verification-progress li:nth-child(1) { animation-delay: 0.28s; }
+.doctor-verification-progress li:nth-child(2) { animation-delay: 0.4s; }
+.doctor-verification-progress li:nth-child(3) { animation-delay: 0.52s; }
+
+.doctor-verification-progress li > span {
+  z-index: 1;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  color: var(--verification-teal);
+  background: #f4faf8;
+  border: 1px solid #cfe4df;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.doctor-verification-progress li > span svg {
+  width: 17px;
+  height: 17px;
+}
+
+.doctor-verification-progress .is-pending > span {
+  color: #8b7348;
+  background: #faf7ef;
+  border-color: #e7dcc4;
+}
+
+.doctor-verification-progress li div {
+  display: grid;
+  gap: 3px;
+}
+
+.doctor-verification-progress strong {
+  font-size: 9px;
+}
+
+.doctor-verification-progress small {
+  color: var(--verification-faint);
+  font-size: 7px;
+}
+
+.doctor-verification-summary {
+  margin-top: 30px;
+  padding: 23px;
+  background: #fbfcfa;
+  border: 1px solid var(--verification-line);
+  border-radius: 15px;
+}
+
+.doctor-verification-summary > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e8ece9;
+}
+
+.doctor-verification-summary header span {
+  color: var(--verification-teal);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.doctor-verification-summary h2 {
+  margin: 5px 0 0;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.doctor-verification-summary header small {
+  color: var(--verification-faint);
+  font-size: 7px;
+}
+
+.doctor-verification-summary dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 30px;
+  margin: 0;
+}
+
+.doctor-verification-summary dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 13px 0;
+  border-bottom: 1px solid #edf0ee;
+}
+
+.doctor-verification-summary dt {
+  color: var(--verification-muted);
+  font-size: 8px;
+}
+
+.doctor-verification-summary dd {
+  margin: 0;
+  font-size: 8px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.doctor-verification-summary dd.is-empty {
+  color: var(--verification-faint);
+  font-weight: 500;
+}
+
+.doctor-verification-actions {
+  display: grid;
+  grid-template-columns: 1fr 0.42fr;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.doctor-verification-actions a {
+  min-height: 51px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 11px;
+  font-size: 9px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.doctor-verification-actions a:first-child {
+  color: white;
+  background: var(--verification-teal);
+  box-shadow: 0 11px 25px rgba(35, 124, 121, 0.18);
+}
+
+.doctor-verification-actions a:last-child {
+  color: var(--verification-teal-dark);
+  background: transparent;
+  border: 1px solid #bfd4cf;
+}
+
+.doctor-verification-actions a:hover {
+  transform: translateY(-2px);
+}
+
+.doctor-verification-actions a:first-child:hover {
+  background: var(--verification-teal-dark);
+  box-shadow: 0 14px 29px rgba(35, 124, 121, 0.22);
+}
+
+.doctor-verification-actions a:last-child:hover {
+  background: var(--verification-teal-soft);
+}
+
+.doctor-verification-actions a:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.doctor-verification-correction {
+  display: grid;
+  justify-items: center;
+  margin-top: 17px;
+}
+
+.doctor-verification-correction button {
+  padding: 4px;
+  color: var(--verification-muted);
+  background: transparent;
+  border: 0;
+  font-size: 8px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: #b8cac6;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.doctor-verification-correction button:hover {
+  color: var(--verification-teal-dark);
+}
+
+.doctor-verification-correction p {
+  max-width: 520px;
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  color: var(--verification-muted);
+  background: #f4f6f3;
+  border-radius: 9px;
+  font-size: 8px;
+  line-height: 1.55;
+  text-align: center;
+  animation: doctor-verification-note-in 0.25s ease both;
+}
+
+.doctor-verification-page > footer {
+  padding: 27px;
+  color: var(--verification-faint);
+  font-size: 7px;
+  text-align: center;
+}
+
+@keyframes doctor-verification-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.985); }
+}
+
+@keyframes doctor-verification-step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes doctor-verification-breathe {
+  50% { opacity: 0.38; transform: scale(1.06); }
+}
+
+@keyframes doctor-verification-pulse {
+  50% { box-shadow: 0 0 0 6px rgba(181, 138, 61, 0.08); }
+}
+
+@keyframes doctor-verification-note-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+@media (max-width: 650px) {
+  .doctor-verification-header {
+    width: calc(100% - 30px);
+    min-height: 80px;
+  }
+
+  .doctor-verification-header > span,
+  .doctor-verification-header .sign-in-brand__copy small {
+    display: none;
+  }
+
+  .doctor-verification-card {
+    width: calc(100% - 24px);
+    margin-top: 10px;
+    padding: 29px 20px;
+    border-radius: 20px;
+  }
+
+  .doctor-verification-hero h1 {
+    font-size: 39px;
+  }
+
+  .doctor-verification-status {
+    align-items: flex-start;
+  }
+
+  .doctor-verification-progress {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .doctor-verification-progress::before {
+    top: 18px;
+    bottom: 18px;
+    left: 17px;
+    width: 1px;
+    height: auto;
+  }
+
+  .doctor-verification-progress li {
+    grid-template-columns: 35px 1fr;
+    justify-items: stretch;
+    align-items: center;
+    gap: 13px;
+    padding: 0 0 15px;
+    text-align: left;
+  }
+
+  .doctor-verification-progress li div {
+    justify-content: start;
+  }
+
+  .doctor-verification-summary > header {
+    align-items: flex-start;
+  }
+
+  .doctor-verification-summary header small {
+    max-width: 110px;
+    line-height: 1.45;
+    text-align: right;
+  }
+
+  .doctor-verification-summary dl {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-verification-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doctor-verification-page *,
+  .doctor-verification-page *::before,
+  .doctor-verification-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
