@@ -23,6 +23,12 @@ const statusContent = {
     description:
       "The review team needs corrected professional information before doctor-dashboard access can be enabled.",
   },
+  "resubmission-required": {
+    label: "Rejected / Resubmission Required",
+    heading: "Your credentials need an update.",
+    description:
+      "The review team needs corrected professional information before doctor-dashboard access can be enabled.",
+  },
 } as const;
 
 function PendingStatusIcon() {
@@ -108,7 +114,7 @@ export default function DoctorVerificationPage() {
           </div>
           <span className="doctor-verification-status__pill">
             <i aria-hidden="true" />
-            {status === "approved" ? "Approved" : status === "rejected" ? "Action needed" : "In review"}
+            {status === "approved" ? "Approved" : status === "pending" ? "In review" : "Action needed"}
           </span>
         </div>
 
