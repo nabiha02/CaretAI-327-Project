@@ -1,5 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { getPatientProfile, type PatientProfileSeed } from "../data/doctorPatientData";
+import { getConversation, listReports, type ApiReport, type ApiVisitSummary, type ConversationDetail } from "../../app/api";
 
 // Visit Reviews queue for the CARETAI doctor workspace.
 //
@@ -172,15 +173,59 @@ function ReviewIcon({ name, size = 16 }: { name: ReviewIconName; size?: number }
 
 export default function DoctorVisitReviews({
   patients,
+  savedVisits,
+  apiError,
   onOpenPatient,
 }: {
   patients: PatientProfileSeed[];
+  savedVisits: ApiVisitSummary[] | null;
+  apiError: string;
   onOpenPatient: (patientId: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ReviewStatus | "All">("All");
+  const [selectedSavedVisitId, setSelectedSavedVisitId] = useState<number | null>(null);
+  const [savedConversation, setSavedConversation] = useState<ConversationDetail | null>(null);
+  const [savedDraft, setSavedDraft] = useState<ApiReport | null>(null);
+  const [savedDetailLoading, setSavedDetailLoading] = useState(false);
+  const [savedDetailError, setSavedDetailError] = useState("");
 
-  const items = useMemo(() => buildVisitReviews(patients), [patients]);
+  const items = useMemo(() => savedVisits !== null
+    ? savedVisits.map((visit): VisitReviewItem => ({
+        id: `local-${visit.id}`,
+        patientId: `local-${visit.id}`,
+        patientName: "Local patient record",
+        initials: "LP",
+        patientCode: "Local demo",
+        visitNumber: visit.id,
+        kind: "current",
+        label: "Saved local visit",
+        date: visit.date,
+        mode: visit.mode,
+        language: visit.language,
+        concern: visit.mainConcern,
+        summary: visit.summary,
+        status: visit.status === "Reviewed" ? "Reviewed" : "New / Pending",
+      }))
+    : buildVisitReviews(patients), [savedVisits, patients]);
+
+  useEffect(() => {
+    if (selectedSavedVisitId === null) return;
+    let mounted = true;
+    setSavedDetailLoading(true);
+    setSavedDetailError("");
+    setSavedConversation(null);
+    setSavedDraft(null);
+    Promise.all([getConversation(selectedSavedVisitId), listReports(selectedSavedVisitId)])
+      .then(([conversation, reports]) => {
+        if (!mounted) return;
+        setSavedConversation(conversation);
+        setSavedDraft(reports.find((report) => report.status === "Draft") ?? null);
+      })
+      .catch((error: Error) => { if (mounted) setSavedDetailError(error.message); })
+      .finally(() => { if (mounted) setSavedDetailLoading(false); });
+    return () => { mounted = false; };
+  }, [selectedSavedVisitId]);
 
   const normalizedSearch = search.trim().toLowerCase();
   const visibleItems = items.filter((item) => {
@@ -198,13 +243,15 @@ export default function DoctorVisitReviews({
         <div>
           <span>Clinical review queue</span>
           <h1>Visit Reviews</h1>
-          <p>Review reported visits and follow-up responses across your patients.</p>
+          <p>{savedVisits === null ? "Simulated review queue; local API is not connected." : "Review patient-reported visits and saved draft reports from the local API."}</p>
         </div>
         <div>
           <strong>{items.length}</strong>
           <span>Review items</span>
         </div>
       </section>
+
+      {apiError && <p role="alert">{apiError} Showing only the simulated review queue until the local API is available.</p>}
 
       <div className="doctor-directory-tools">
         <label className="doctor-search">
@@ -228,7 +275,7 @@ export default function DoctorVisitReviews({
             <h2>{status === "All" ? "All Reviews" : status}</h2>
             <p>{visibleItems.length} item{visibleItems.length === 1 ? "" : "s"}{search ? ` matching “${search}”` : " in this view"}</p>
           </div>
-          <span>Open a review to view the full patient profile</span>
+          <span>{savedVisits === null ? "Open a demo review to view its simulated profile" : "Open a saved visit to review its draft and transcript"}</span>
         </div>
 
         {visibleItems.length ? (
@@ -239,12 +286,13 @@ export default function DoctorVisitReviews({
                 role="button"
                 tabIndex={0}
                 key={item.id}
-                aria-label={`Open full profile for ${item.patientName}`}
-                onClick={() => onOpenPatient(item.patientId)}
+                aria-label={savedVisits === null ? `Open simulated profile for ${item.patientName}` : `Open saved draft for visit ${item.visitNumber}`}
+                onClick={() => savedVisits === null ? onOpenPatient(item.patientId) : setSelectedSavedVisitId(item.visitNumber)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    onOpenPatient(item.patientId);
+                    if (savedVisits === null) onOpenPatient(item.patientId);
+                    else setSelectedSavedVisitId(item.visitNumber);
                   }
                 }}
               >
@@ -288,9 +336,37 @@ export default function DoctorVisitReviews({
         ) : (
           <div className="doctor-empty-state">
             <span><ReviewIcon name="search" size={25} /></span>
-            <strong>No reviews found</strong>
-            <p>Try a different patient name or ID, or choose another review status.</p>
+            <strong>{savedVisits !== null && !items.length ? "No saved local visits yet" : "No reviews found"}</strong>
+            <p>{savedVisits !== null && !items.length ? "A patient or caregiver visit will appear here after it is saved." : "Try a different name or choose another review status."}</p>
           </div>
+        )}
+
+        {savedVisits !== null && selectedSavedVisitId !== null && (
+          <section className="doctor-review-card" style={{ marginTop: 20, cursor: "default" }} aria-label={`Saved draft for visit ${selectedSavedVisitId}`}>
+            <div className="doctor-section-heading">
+              <div><h2>Saved visit #{selectedSavedVisitId}</h2><p>Local, read-only patient-reported draft and transcript</p></div>
+              <button type="button" onClick={() => { setSelectedSavedVisitId(null); setSavedConversation(null); setSavedDraft(null); }}>Close</button>
+            </div>
+            {savedDetailLoading && <p>Loading saved transcript and draft…</p>}
+            {savedDetailError && <p role="alert">{savedDetailError}</p>}
+            {!savedDetailLoading && !savedDetailError && (
+              <>
+                <p>Clinical assessment, care decisions, and any prescribing remain with the doctor.</p>
+                {savedDraft ? (
+                  <div>
+                    <h3>{savedDraft.report_name} · {savedDraft.status}</h3>
+                    <pre style={{ whiteSpace: "pre-wrap", font: "inherit", lineHeight: 1.6, margin: 0 }}>{savedDraft.summary}</pre>
+                  </div>
+                ) : <p>No report draft has been saved for this visit yet.</p>}
+                <details style={{ marginTop: 16 }} open>
+                  <summary>Conversation transcript ({savedConversation?.messages.length ?? 0} messages)</summary>
+                  <ol>
+                    {savedConversation?.messages.map((message) => <li key={message.id}><strong>{message.author}:</strong> {message.text}</li>)}
+                  </ol>
+                </details>
+              </>
+            )}
+          </section>
         )}
       </section>
     </div>

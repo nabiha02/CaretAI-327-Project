@@ -57,7 +57,7 @@ There is no `frontend/public/` directory in the current repository. The app does
 `frontend/dist/` is the generated production build output directory. It is created when the Vite production build runs and is ignored by Git according to the repository `.gitignore`.
 
 ### `backend/`
-There is no `backend/` directory in the current repository. No backend service, database layer, or API server is present in the checked-in code at this time.
+`backend/` contains the FastAPI service, request/response schemas, conversation workflow, and local persistence layer. The conversation and report endpoints use SQLite by default; saved records live in `backend/data/caretai.sqlite3` (ignored by Git). Set `CARETAI_DB_PATH` to select another database file. Supabase hosting and authentication are not configured.
 
 ## 3. Prerequisites
 
@@ -181,17 +181,20 @@ npm.cmd run preview
 
 Do not reinstall Node.js or npm as the first troubleshooting step.
 
-## 8. Environment variables and future AI/backend integration
+## 8. Local backend and AI status
 
-The current frontend code does not read any environment variables for configuration. There are no `VITE_*` values or other app secrets exposed in the current code.
+The React frontend does not currently read backend environment variables or call the new API; its existing demo screens still use their current local/static data. The backend is a separately runnable local FastAPI demo and stores visit conversations and doctor-review drafts in SQLite. Set `CARETAI_DB_PATH` to choose a different SQLite file. Do not use real patient information: the demo API has no authentication or authorization.
 
-The repository does not currently contain a verified backend or AI integration layer. There is no checked-in FastAPI service, database, AI API client, or speech feature implementation at this time.
+Run the backend from PowerShell:
 
-Therefore:
-- Environment variables: not currently used
-- API secrets: not exposed in frontend environment variables
-- Backend/AI integration: planned, not functional yet
-- Database and speech features: not verified as implemented in the repo
+```powershell
+cd E:\Desktop\CaretAI\backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+Open `http://localhost:8000/docs` to try the API. `POST /conversations` starts an intake with `main_concern`, optional `mode`, `language`, and `reporter`; send answers to `POST /conversations/{visit_id}/messages`. Completing the guided questions automatically saves a `Draft` report. `POST /conversations/{visit_id}/draft-report` saves an incomplete draft too, keeping unanswered and unknown details visible. `GET /conversations/{visit_id}` returns the saved visit and chronological transcript. Existing `/visits`, `/messages`, and `/reports` routes use the same SQLite store.
+
+The summary is deterministic and based on submitted text; no AI model is called. It does not diagnose, prescribe, or make care decisions. The doctor remains responsible for clinical review and all care decisions. Supabase hosting, authentication, and speech-to-text are not configured.
 
 ## 9. Feature status
 
@@ -208,16 +211,17 @@ The current code includes:
 - browser session storage for demo authentication state
 - role-based route protection for patient and doctor flows
 - mock verification and review states for doctor onboarding
+- a local FastAPI API for visits, messages, conversations, and saved draft reports
+- SQLite persistence for the local backend demo
 - structured patient/doctor UI modules with static data and frontend-only interactions
 
-These are demo UI flows, not real production integrations with secure healthcare systems.
+The React screens are not yet wired to the API. These remain demo workflows, not secure production healthcare integrations.
 
 ### Planned features
-The following are not verified as implemented in the current snapshot:
-- backend API services
+The following are not implemented in this snapshot:
 - real authentication or authorization
 - AI inference or LLM-backed processing
-- medical database persistence
+- Supabase/PostgreSQL hosting and production database controls
 - speech transcription or voice workflows
 - production deployment infrastructure
 
@@ -262,7 +266,7 @@ Recommended workflow:
 
 ## 11. Summary
 
-CARETAI is a frontend-only demo project for structured patient and doctor communication in a healthcare context. It contains role-based demo flows and a polished frontend experience, but it does not include a verified backend, AI service, or medical decision-support system yet. The repository is currently configured around a Vite + React + TypeScript frontend and should be run from `frontend/`.
+CARETAI includes a React + TypeScript frontend and a local FastAPI/SQLite demo backend. The backend can save patient/caregiver conversations and create source-preserving draft reports for doctor review, but the existing frontend is not wired to it. Authentication, cloud database hosting, AI inference, and production medical safeguards are not implemented. Run the frontend from `frontend/` and the backend from `backend/`.
 
 ## 12. Exact commands documented
 

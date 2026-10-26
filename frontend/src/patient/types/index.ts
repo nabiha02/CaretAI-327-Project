@@ -50,7 +50,7 @@ export type VisitRecord = {
   date: string;
   mode: "Chat" | "Voice";
   language: "বাংলা" | "English";
-  status: "Confirmed" | "Reviewed";
+  status: "In Progress" | "Confirmed" | "Reviewed";
   duration?: string;
   mainConcern: string;
   onset: string;
@@ -59,7 +59,13 @@ export type VisitRecord = {
   quotes: string[];
   summary: string;
   notMentioned: { label: string; value: string }[];
-  review: { status: "Waiting for doctor review" | "Reviewed"; doctor?: string; date?: string };
+  review: {
+    status: "Waiting for doctor review" | "Reviewed";
+    doctor?: string;
+    date?: string;
+    patientConfirmed?: boolean;
+    patientCorrections?: Record<string, string>;
+  };
   recommendations?: {
     medications: { name: string; dose: string; schedule: string; duration: string; meal: string; instruction: string }[];
     tests: { name: string; instruction: string; status: string }[];
