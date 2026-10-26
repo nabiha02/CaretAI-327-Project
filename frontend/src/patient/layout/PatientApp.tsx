@@ -9,6 +9,18 @@ import { LogoutConfirmation } from "../components/LogoutConfirmation";
 import { PreviousVisitContext } from "../components/PreviousVisitContext";
 import { patientRoutes } from "../data/navigation";
 import { demoVisits } from "../data/demoVisits";
+import {
+  confirmVisit as confirmVisitApi,
+  createDraftReport,
+  getConversation,
+  getVisit,
+  listVisits,
+  sendConversationMessage,
+  startConversation,
+  type ApiVisit,
+  type ApiVisitSummary,
+} from "../../app/api";
+import { getActiveDemoRole } from "../../auth/services/demoAuth";
 import type {
   IconName,
   SpeechRecognitionConstructor,
@@ -56,24 +68,24 @@ export default function App() {
   const [visitSaved, setVisitSaved] = useState(false);
   const [savedVisitLanguage, setSavedVisitLanguage] = useState<"en" | "bn" | null>(null);
   const [reviewInformation, setReviewInformation] = useState({
-    concern: "কাশি",
-    symptoms: "রাতে বেশি হয়",
-    timeline: "প্রায় ৫ দিন",
-    additional: "ঘুমাতে সমস্যা হচ্ছে",
+    concern: "",
+    symptoms: "",
+    timeline: "",
+    additional: "",
   });
   const [chatDraft, setChatDraft] = useState("");
-  const [chatMessages, setChatMessages] = useState([
-    { author: "CARETAI", text: "হ্যালো চৈতি। আয়ানের কী সমস্যা হচ্ছে?" },
-    { author: "Chaiti", text: "কাশি প্রায় পাঁচ দিন ধরে হচ্ছে।" },
-    { author: "CARETAI", text: "কাশি কখন থেকে হচ্ছে?" },
-    { author: "Chaiti", text: "রাতে বেশি হয়, তাই ঘুমাতে সমস্যা হচ্ছে।" },
-  ]);
-  const [voiceTranscript, setVoiceTranscript] = useState("আমার পাঁচ দিন ধরে কাশি হচ্ছে এবং খাওয়া কমে গেছে।");
-  const [voiceTranscriptHistory, setVoiceTranscriptHistory] = useState([
-    "আমার পাঁচ দিন ধরে কাশি হচ্ছে।",
-    "রাতে কাশি বেশি হয়, তাই ঘুমাতে সমস্যা হচ্ছে।",
-  ]);
-  const [voiceResponse, setVoiceResponse] = useState("আপনার কী সমস্যা হচ্ছে?");
+  const [chatMessages, setChatMessages] = useState<{ author: string; text: string }[]>([]);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceTranscriptHistory, setVoiceTranscriptHistory] = useState<string[]>([]);
+  const [voiceResponse, setVoiceResponse] = useState("");
+  const [activeVisitId, setActiveVisitId] = useState<number | null>(null);
+  const [activeVisit, setActiveVisit] = useState<ApiVisit | null>(null);
+  const [savedVisits, setSavedVisits] = useState<ApiVisitSummary[]>([]);
+  const [visitApiAvailable, setVisitApiAvailable] = useState<boolean | null>(null);
+  const [visitApiError, setVisitApiError] = useState("");
+  const [conversationProgress, setConversationProgress] = useState({ answered: 0, total: 6 });
+  const conversationStarting = useRef(false);
+  const activeVisitIdRef = useRef<number | null>(null);
   const [editingReviewField, setEditingReviewField] = useState<keyof typeof reviewInformation | null>(null);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [followupParentId, setFollowupParentId] = useState<number | null>(null);
@@ -136,6 +148,72 @@ export default function App() {
     }
   }, [location.pathname]);
 
+  const queryVisitId = Number(new URLSearchParams(location.search).get("visitId")) || null;
+  const detailVisitId = location.pathname.startsWith("/patient/visits/")
+    ? Number(location.pathname.split("/").pop()) || null
+    : null;
+
+  useEffect(() => {
+    let mounted = true;
+    listVisits()
+      .then((visits) => {
+        if (!mounted) return;
+        setSavedVisits(visits);
+        setVisitApiAvailable(true);
+        setVisitApiError("");
+      })
+      .catch((error: Error) => {
+        if (!mounted) return;
+        setVisitApiAvailable(false);
+        setVisitApiError(error.message);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!queryVisitId) return;
+    let mounted = true;
+    setActiveVisitId(queryVisitId);
+    activeVisitIdRef.current = queryVisitId;
+    getConversation(queryVisitId)
+      .then((detail) => {
+        if (!mounted) return;
+        setActiveVisit(detail.visit);
+        setConversationProgress(detail.progress);
+        setChatMessages(detail.messages.map((message) => ({ author: message.author, text: message.text })));
+        setVoiceTranscriptHistory(detail.messages.filter((message) => message.author !== "CARETAI").map((message) => message.text));
+        setConsultationMode(detail.visit.mode);
+        setConsultationLanguage(detail.visit.language);
+        setReviewInformation({
+          concern: detail.visit.mainConcern,
+          symptoms: detail.visit.pattern || "Not reported",
+          timeline: detail.visit.onset,
+          additional: detail.visit.reportedInformation.slice(1).join(" · ") || "Not reported",
+        });
+      })
+      .catch((error: Error) => { if (mounted) setVisitApiError(error.message); });
+    return () => { mounted = false; };
+  }, [queryVisitId]);
+
+  useEffect(() => {
+    if (!detailVisitId) {
+      setDetailVisit(null);
+      return;
+    }
+    let mounted = true;
+    getVisit(detailVisitId)
+      .then((visit) => {
+        if (!mounted) return;
+        setDetailVisit(visit);
+        setVisitApiAvailable(true);
+      })
+      .catch((error: Error) => {
+        if (mounted && visitApiAvailable !== true) setVisitApiError(error.message);
+      });
+    return () => { mounted = false; };
+  }, [detailVisitId, visitApiAvailable]);
+
+  const [detailVisit, setDetailVisit] = useState<ApiVisit | null>(null);
   const notify = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 2400);
@@ -343,6 +421,19 @@ export default function App() {
     setConsultationInProgress(true);
     setVoiceCallActive(false);
     setVoicePermission("idle");
+    if (!followupParentId) {
+      activeVisitIdRef.current = null;
+      setActiveVisitId(null);
+      setActiveVisit(null);
+      setChatMessages([]);
+      setVoiceTranscript("");
+      setVoiceTranscriptHistory([]);
+      setVoiceResponse(consultationLanguage === "বাংলা" ? "আপনার প্রধান সমস্যাটি বলুন।" : "Please describe the main concern.");
+      setConversationProgress({ answered: 0, total: 6 });
+      setVisitApiError("");
+      navigate(`/patient/visit/${mode === "Chat" ? "chat" : "voice"}`);
+      return;
+    }
     if (mode === "Chat") {
       setChatMessages(followupParentId
         ? (consultationLanguage === "বাংলা"
@@ -409,6 +500,55 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   };
 
+  const persistPatientMessage = async (text: string, mode: "Chat" | "Voice" = consultationMode, language: "English" | "বাংলা" = consultationLanguage) => {
+    if (followupParentId || conversationStarting.current) return;
+    conversationStarting.current = true;
+    try {
+      if (!activeVisitIdRef.current) {
+        const started = await startConversation({
+          main_concern: text,
+          mode,
+          language,
+          reporter: getActiveDemoRole() === "caregiver" ? "Caregiver" : "Patient",
+        });
+        const visitId = started.visit.id;
+        activeVisitIdRef.current = visitId;
+        setActiveVisitId(visitId);
+        setActiveVisit(started.visit);
+        setConversationProgress(started.progress);
+        setChatMessages(started.messages.map((message) => ({ author: message.author, text: message.text })));
+        setVoiceResponse(started.next_question);
+        setSavedVisitLanguage(language === "বাংলা" ? "bn" : "en");
+        navigate(`${location.pathname}?visitId=${visitId}`, { replace: true });
+        void listVisits().then((visits) => {
+          setSavedVisits(visits);
+          setVisitApiAvailable(true);
+          setVisitApiError("");
+        }).catch(() => {});
+        if (mode === "Voice") speakResponse(started.next_question, language);
+      } else {
+        const result = await sendConversationMessage(activeVisitIdRef.current, text);
+        setActiveVisit(result.visit);
+        setConversationProgress(result.progress);
+        setChatMessages((current) => [
+          ...current,
+          { author: result.message.author, text: result.message.text },
+          { author: result.assistant_message.author, text: result.assistant_message.text },
+        ]);
+        setVoiceResponse(result.assistant_message.text);
+        if (mode === "Voice") speakResponse(result.assistant_message.text, language);
+        void listVisits().then(setSavedVisits).catch(() => {});
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save this response.";
+      if (mode === "Chat") setChatDraft(text);
+      setVisitApiError(message);
+      notify(message);
+    } finally {
+      conversationStarting.current = false;
+    }
+  };
+
   const startSpeechRecognition = (language: "English" | "বাংলা") => {
     const speechWindow = window as typeof window & {
       SpeechRecognition?: SpeechRecognitionConstructor;
@@ -437,11 +577,15 @@ export default function App() {
       if (transcript.trim()) setVoiceTranscript(transcript.trim());
       if (hasFinalResult && transcript.trim()) {
         setVoiceTranscriptHistory((current) => [...current, transcript.trim()]);
-        const response = followupParentId
-          ? (language === "বাংলা" ? "ধন্যবাদ। আগের নির্দেশনা অনুসরণ করা হয়েছিল কি, এবং নতুন কোনো সমস্যা হয়েছে?" : "Thank you. Were the previous instructions followed, and is there anything new?")
-          : language === "বাংলা" ? "ধন্যবাদ। কাশির সাথে কি জ্বর হয়েছে?" : "Thank you. Has there also been a fever with the cough?";
-        setVoiceResponse(response);
-        speakResponse(response, language);
+        if (!followupParentId) {
+          void persistPatientMessage(transcript.trim(), "Voice", language);
+        } else {
+          const response = language === "বাংলা"
+            ? "ধন্যবাদ। আগের নির্দেশনা অনুসরণ করা হয়েছিল কি, এবং নতুন কোনো সমস্যা হয়েছে?"
+            : "Thank you. Were the previous instructions followed, and is there anything new?";
+          setVoiceResponse(response);
+          speakResponse(response, language);
+        }
       }
     };
     recognition.onerror = () => setVoicePermission("denied");
@@ -487,42 +631,70 @@ export default function App() {
 
   const finishConsultation = () => {
     stopVoiceCall();
+    if (!followupParentId) {
+      const visitId = activeVisitIdRef.current;
+      if (!visitId) {
+        notify(consultationLanguage === "বাংলা" ? "প্রথমে আপনার প্রধান সমস্যাটি বলুন।" : "Please share the main concern before finishing.");
+        return;
+      }
+      void createDraftReport(visitId)
+        .then(({ visit }) => {
+          setActiveVisit(visit);
+          setReviewInformation({
+            concern: visit.mainConcern,
+            symptoms: visit.pattern || "Not reported",
+            timeline: visit.onset,
+            additional: visit.reportedInformation.slice(1).join(" · ") || "Not reported",
+          });
+          setEditingReviewField(null);
+          setReviewConfirmed(false);
+          setConsultationInProgress(false);
+          navigate(`/patient/visit/review?visitId=${visitId}`);
+        })
+        .catch((error: Error) => notify(error.message));
+      return;
+    }
     setConsultationInProgress(false);
-    if (followupParentId && consultationLanguage === "বাংলা") {
+    if (consultationLanguage === "বাংলা") {
       setReviewInformation({
         concern: "কাশি আগের চেয়ে ভালো",
         symptoms: "রাতে কম হচ্ছে",
         timeline: "ভিজিট #৪-এর পর থেকে উন্নতি",
         additional: "ঘুম ভালো হয়েছে · নতুন গলায় অস্বস্তি",
       });
-    } else if (followupParentId) {
+    } else {
       setReviewInformation({
         concern: "Cough improved",
         symptoms: "Less frequent at night",
         timeline: "Improved since Visit #4",
         additional: "Sleep improved · New throat discomfort",
       });
-    } else if (consultationLanguage === "বাংলা") {
-      setReviewInformation({
-        concern: "কাশি",
-        symptoms: "রাতে বেশি হয়",
-        timeline: "প্রায় ৫ দিন",
-        additional: "ঘুমাতে সমস্যা হচ্ছে",
-      });
-    } else {
-      setReviewInformation({
-        concern: "Cough",
-        symptoms: "Mostly at night",
-        timeline: "About 5 days",
-        additional: "Difficulty sleeping",
-      });
     }
     setEditingReviewField(null);
     setReviewConfirmed(false);
-    navigate(followupParentId ? "/patient/follow-up/review" : "/patient/visit/review");
+    navigate("/patient/follow-up/review");
   };
 
   const confirmVisit = () => {
+    if (!followupParentId && activeVisitIdRef.current) {
+      void confirmVisitApi(activeVisitIdRef.current, {
+        "Main concern": reviewInformation.concern,
+        "Timeline": reviewInformation.timeline,
+        "Pattern": reviewInformation.symptoms,
+        "Additional information": reviewInformation.additional,
+      })
+        .then(async ({ visit }) => {
+          setActiveVisit(visit);
+          setVisitSaved(true);
+          setSavedVisitLanguage(languageCode);
+          setFollowupRelationship(null);
+          setVisitApiAvailable(true);
+          void listVisits().then(setSavedVisits).catch(() => {});
+          navigate(`/patient/visit/summary?visitId=${visit.id}`);
+        })
+        .catch((error: Error) => notify(error.message));
+      return;
+    }
     setVisitSaved(true);
     setSavedVisitLanguage(languageCode);
     setFollowupRelationship(followupParentId ? { visitId: 5, follow_up_of: followupParentId } : null);
@@ -532,25 +704,33 @@ export default function App() {
   const sendChatMessage = () => {
     const value = chatDraft.trim();
     if (!value) return;
-    setChatMessages((current) => [...current, { author: "Chaiti", text: value }]);
     setChatDraft("");
-    const response = followupParentId
-      ? (consultationLanguage === "বাংলা" ? "আগের ডাক্তারের নির্দেশনা কি অনুসরণ করা হয়েছিল? কোনো নতুন সমস্যা আছে?" : "Were the previous doctor's instructions followed? Is there anything new?")
-      : consultationLanguage === "বাংলা" ? "কাশির সাথে কি জ্বর হয়েছে?" : "Has there also been a fever with the cough?";
+    if (!followupParentId) {
+      void persistPatientMessage(value, "Chat", consultationLanguage);
+      return;
+    }
+    setChatMessages((current) => [...current, { author: "Chaiti", text: value }]);
+    const response = consultationLanguage === "বাংলা"
+      ? "আগের ডাক্তারের নির্দেশনা কি অনুসরণ করা হয়েছিল? কোনো নতুন সমস্যা আছে?"
+      : "Were the previous doctor's instructions followed? Is there anything new?";
     window.setTimeout(() => setChatMessages((current) => [...current, { author: "CARETAI", text: response }]), 350);
   };
 
   const changeConsultationLanguage = (language: "English" | "বাংলা") => {
     if (language === consultationLanguage) return;
+    if (!followupParentId && activeVisitIdRef.current) {
+      notify("The language is fixed for a saved visit. Start a new visit to switch languages.");
+      return;
+    }
     setConsultationLanguage(language);
     notify(`Language changed to ${language}`);
     const nextQuestion = followupParentId
       ? (language === "বাংলা" ? "আগের ভিজিটের পর থেকে কী পরিবর্তন হয়েছে?" : "What has changed since the previous visit?")
       : language === "বাংলা" ? "কাশি কতদিন ধরে হচ্ছে?" : "How long has the cough been present?";
-    if (location.pathname === "/patient/visit/chat") {
+    if (followupParentId && location.pathname === "/patient/follow-up/chat") {
       setChatMessages((current) => [...current, { author: "CARETAI", text: nextQuestion }]);
     }
-    if (location.pathname === "/patient/visit/voice" && voiceCallActive) {
+    if (followupParentId && location.pathname === "/patient/follow-up/voice" && voiceCallActive) {
       startSpeechRecognition(language);
       setVoiceResponse(nextQuestion);
       speakResponse(nextQuestion, language);
@@ -938,8 +1118,14 @@ export default function App() {
 
   if (activeNav !== "Care Plan") {
     const isVisitDetail = location.pathname.startsWith("/patient/visits/");
-    const selectedVisitId = isVisitDetail ? Number(location.pathname.split("/").pop()) : null;
-    const selectedVisit = selectedVisitId ? demoVisits.find((visit) => visit.id === selectedVisitId) : null;
+    const selectedVisitId = detailVisitId;
+    const selectedVisit = selectedVisitId
+      ? detailVisit?.id === selectedVisitId
+        ? detailVisit
+        : visitApiAvailable === false
+          ? demoVisits.find((visit) => visit.id === selectedVisitId) ?? null
+          : null
+      : null;
     const isFollowup = location.pathname.startsWith("/patient/follow-up");
     const isFollowupLanding = location.pathname === "/patient/follow-up";
     const isChat = location.pathname === "/patient/visit/chat" || location.pathname === "/patient/follow-up/chat";
@@ -966,7 +1152,7 @@ export default function App() {
       { key: "additional", label: isBangla ? "অন্যান্য তথ্য" : "Other information", icon: "info" },
     ];
     const conversationHighlights = consultationMode === "Chat"
-      ? chatMessages.filter((message) => message.author === "Chaiti").map((message) => message.text).slice(-3)
+      ? chatMessages.filter((message) => message.author !== "CARETAI").map((message) => message.text).slice(-3)
       : voiceTranscriptHistory.slice(-3);
 
     return (
@@ -980,7 +1166,7 @@ export default function App() {
               <section className="connected-page-heading"><div><div className="eyebrow">Patient dashboard</div><div className="page-title">Welcome back, Chaiti</div><p>Manage Ayan's visits, follow-up, and latest care information.</p></div><Button onClick={() => navigate("/patient/start-visit")}>Start a New Visit <Icon name="arrow" size={14} /></Button></section>
               <section className="dashboard-action-card"><span><Icon name="chat" size={23} /></span><div><div className="section-title">Report new information</div><p>Start a guided consultation to collect information for clinical review.</p></div><Button onClick={() => navigate("/patient/start-visit")}>Start a Visit</Button></section>
               <div className="connected-card-grid">
-                <section className="connected-card"><div className="connected-card__heading"><div><div className="section-title section-title--small">Recent Visits</div><p>Your latest confirmed information</p></div><button type="button" onClick={() => navigate("/patient/visits")}>View all <Icon name="arrow" size={12} /></button></div><button className="compact-visit-row" type="button" onClick={() => navigate("/patient/visits/4")}><span><Icon name="visits" size={17} /></span><div><strong>Visit #4</strong><p>Confirmed September 28, 2026</p></div><Icon name="arrow" size={14} /></button></section>
+                <section className="connected-card"><div className="connected-card__heading"><div><div className="section-title section-title--small">Recent Visits</div><p>Your latest confirmed information</p></div><button type="button" onClick={() => navigate("/patient/visits")}>View all <Icon name="arrow" size={12} /></button></div>{visitApiAvailable === true ? (savedVisits.length ? savedVisits.slice(0, 1).map((visit) => <button className="compact-visit-row" type="button" key={visit.id} onClick={() => navigate(`/patient/visits/${visit.id}`)}><span><Icon name="visits" size={17} /></span><div><strong>Visit #{visit.id}</strong><p>{visit.status} · {visit.date} · {visit.mode}</p></div><Icon name="arrow" size={14} /></button>) : <p>No saved visits yet.</p>) : <button className="compact-visit-row" type="button" onClick={() => navigate("/patient/visits/4")}><span><Icon name="visits" size={17} /></span><div><strong>Demo Visit #4</strong><p>Simulated history · API unavailable</p></div><Icon name="arrow" size={14} /></button>}</section>
                 <section className="connected-card"><div className="connected-card__heading"><div><div className="section-title section-title--small">Care Plan</div><p>Updated by your doctor</p></div></div><div className="dashboard-care-summary"><span><Icon name="care" size={19} /></span><div><strong>Recommendations available</strong><p>Last updated September 28, 2026</p></div></div><Button variant="secondary" onClick={() => navigate("/patient/care-plan")}>View Care Plan <Icon name="arrow" size={13} /></Button></section>
               </div>
             </div>
@@ -994,7 +1180,7 @@ export default function App() {
                     <section className="visit-detail-page-header">
                       <div>
                         <button type="button" onClick={() => navigate("/patient/visits")}><Icon name="arrow" size={13} /> Back to My Visits</button>
-                        <div><div className="page-title">Visit Summary</div><span className="visit-confirmed-badge"><Icon name="checkDocument" size={12} /> Confirmed</span></div>
+                        <div><div className="page-title">Visit Summary</div><span className="visit-confirmed-badge"><Icon name="checkDocument" size={12} /> {selectedVisit.status}</span></div>
                         <p>Visit #{selectedVisit.id} · {selectedVisit.date} · {selectedVisit.mode} consultation · {selectedVisit.language}</p>
                       </div>
                       <div className="download-control visit-download-control">
@@ -1004,21 +1190,21 @@ export default function App() {
                     </section>
 
                     <article className="visit-detail-document">
-                      <header className="visit-document-brand"><div><span><Icon name="brand" size={21} /></span><div><strong>CARETAI</strong><small>Confirmed Visit Summary</small></div></div><div><strong>Visit #{selectedVisit.id}</strong><small>{selectedVisit.date}</small></div></header>
+                      <header className="visit-document-brand"><div><span><Icon name="brand" size={21} /></span><div><strong>CARETAI</strong><small>{detailVisit?.id === selectedVisit.id ? "Local patient visit record" : "Simulated confirmed visit summary"}</small></div></div><div><strong>Visit #{selectedVisit.id}</strong><small>{selectedVisit.date}</small></div></header>
 
                       <section className="visit-document-identity">
-                        <div className="avatar avatar--patient">AA</div>
-                        <div><span>Patient</span><strong>Ayan Ahmed</strong><p>8 years old · Child</p></div>
-                        <div><span>Visit status</span><strong>Confirmed</strong><p>{selectedVisit.mode} · {selectedVisit.language}</p></div>
+                        <div className="avatar avatar--patient">{detailVisit?.id === selectedVisit.id ? "LP" : "AA"}</div>
+                        <div><span>Patient</span><strong>{detailVisit?.id === selectedVisit.id ? "Local patient (identity not stored)" : "Ayan Ahmed"}</strong><p>{detailVisit?.id === selectedVisit.id ? "Identity is not linked in this phase" : "8 years old · Child"}</p></div>
+                        <div><span>Visit status</span><strong>{selectedVisit.status}</strong><p>{selectedVisit.mode} · {selectedVisit.language}</p></div>
                       </section>
 
                       <div className="visit-document-two-column">
                         <section className="visit-document-section">
                           <div className="visit-document-section__heading"><span><Icon name="user" size={16} /></span><div><strong>Patient Information</strong><p>Patient and caregiver details</p></div></div>
-                          <dl className="visit-document-details"><div><dt>Patient name</dt><dd>Ayan Ahmed</dd></div><div><dt>Date of birth</dt><dd>May 14, 2018</dd></div><div><dt>Age</dt><dd>8 years</dd></div><div><dt>Gender</dt><dd>Male</dd></div><div><dt>Age group</dt><dd>Child</dd></div><div><dt>Preferred language</dt><dd>{selectedVisit.language}</dd></div><div><dt>Caregiver</dt><dd>Chaiti · Caregiver</dd></div></dl>
+                          <dl className="visit-document-details"><div><dt>Patient identity</dt><dd>{detailVisit?.id === selectedVisit.id ? "Not attached in this local phase" : "Ayan Ahmed (simulated)"}</dd></div><div><dt>Date of birth</dt><dd>{detailVisit?.id === selectedVisit.id ? "Not stored" : "May 14, 2018 (simulated)"}</dd></div><div><dt>Age</dt><dd>{detailVisit?.id === selectedVisit.id ? "Not stored" : "8 years (simulated)"}</dd></div><div><dt>Gender</dt><dd>{detailVisit?.id === selectedVisit.id ? "Not stored" : "Male (simulated)"}</dd></div><div><dt>Age group</dt><dd>{detailVisit?.id === selectedVisit.id ? "Not stored" : "Child (simulated)"}</dd></div><div><dt>Preferred language</dt><dd>{selectedVisit.language}</dd></div><div><dt>Caregiver</dt><dd>{detailVisit?.id === selectedVisit.id ? "Reporter role only; no name stored" : "Chaiti · Caregiver (simulated)"}</dd></div></dl>
                         </section>
                         <section className="visit-document-section">
-                          <div className="visit-document-section__heading"><span><Icon name="visits" size={16} /></span><div><strong>Visit Information</strong><p>Confirmed consultation record</p></div></div>
+                          <div className="visit-document-section__heading"><span><Icon name="visits" size={16} /></span><div><strong>Visit Information</strong><p>{detailVisit?.id === selectedVisit.id ? "Saved local visit record" : "Simulated confirmed consultation record"}</p></div></div>
                           <dl className="visit-document-details"><div><dt>Visit number</dt><dd>#{selectedVisit.id}</dd></div><div><dt>Visit date</dt><dd>{selectedVisit.date}</dd></div><div><dt>Consultation mode</dt><dd>{selectedVisit.mode}</dd></div><div><dt>Language</dt><dd>{selectedVisit.language}</dd></div><div><dt>Visit status</dt><dd>Confirmed</dd></div>{selectedVisit.duration && <div><dt>Duration</dt><dd>{selectedVisit.duration}</dd></div>}</dl>
                         </section>
                       </div>
@@ -1080,14 +1266,14 @@ export default function App() {
                   {!isSummary && <div className="visit-patient-line"><div className="avatar avatar--mini">AA</div><span>Viewing visits for <strong>Ayan Ahmed</strong><i />8 years old · Child</span></div>}
                   {isSummary ? (
                     <>
-                      <section className="connected-card visit-detail-card"><div className="visit-detail-status"><span><Icon name="checkDocument" size={20} /></span><div><strong>{isBangla ? "ভিজিট #5 নিশ্চিত হয়েছে" : "Visit #5 confirmed"}</strong><p>{isBangla ? "এইমাত্র" : "Just now"} · {savedVisitLanguage === "bn" ? "বাংলা" : "English"} · {consultationMode} {isFollowup ? "follow-up" : "consultation"}</p></div></div><div className="visit-detail-grid"><div><span>{isBangla ? "রোগী" : "Patient"}</span><strong>{isBangla ? "আয়ান আহমেদ · ৮ বছর · শিশু" : "Ayan Ahmed · 8 years old · Child"}</strong></div><div><span>{isBangla ? "অবস্থা" : "Status"}</span><strong>{isBangla ? "ডাক্তারের পর্যালোচনার অপেক্ষায়" : "Awaiting doctor review"}</strong></div><div><span>{isBangla ? "আজ জানানো হয়েছে" : "Reported Today"}</span><strong>{reviewInformation.concern}</strong></div><div><span>Visit relationship</span><strong>{isFollowup ? `Follow-up of Visit #${followupRelationship?.follow_up_of ?? followupParentId ?? 4}` : "Initial consultation"}</strong></div></div></section>
+                      <section className="connected-card visit-detail-card"><div className="visit-detail-status"><span><Icon name="checkDocument" size={20} /></span><div><strong>{activeVisit ? `Visit #${activeVisit.id} ${activeVisit.status.toLowerCase()}` : isBangla ? "ভিজিট #5 নিশ্চিত হয়েছে" : "Visit #5 confirmed"}</strong><p>{activeVisit?.date ?? (isBangla ? "এইমাত্র" : "Just now")} · {activeVisit?.language ?? (savedVisitLanguage === "bn" ? "বাংলা" : "English")} · {activeVisit?.mode ?? consultationMode} {isFollowup ? "follow-up" : "consultation"}</p></div></div><div className="visit-detail-grid"><div><span>{isBangla ? "রোগী" : "Patient"}</span><strong>{activeVisit ? "Local patient record · identity not attached" : isBangla ? "আয়ান আহমেদ · ৮ বছর · শিশু" : "Ayan Ahmed · 8 years old · Child"}</strong></div><div><span>{isBangla ? "অবস্থা" : "Status"}</span><strong>{activeVisit?.review.status ?? (isBangla ? "ডাক্তারের পর্যালোচনার অপেক্ষায়" : "Awaiting doctor review")}</strong></div><div><span>{isBangla ? "আজ জানানো হয়েছে" : "Reported Today"}</span><strong>{reviewInformation.concern}</strong></div><div><span>Visit relationship</span><strong>{isFollowup ? `Follow-up of Visit #${followupRelationship?.follow_up_of ?? followupParentId ?? 4}` : "Initial consultation"}</strong></div></div></section>
                       {isFollowup && <section className="followup-summary-relationship"><div><span>Previous Visit</span><strong>Visit #{followupRelationship?.follow_up_of ?? followupParentId ?? 4}</strong><p>Cough mostly at night · Difficulty sleeping</p></div><Icon name="arrow" size={18} /><div><span>Current Visit</span><strong>Visit #5 · Follow-up</strong><p>{reviewInformation.concern} · {reviewInformation.additional}</p></div><button type="button" onClick={() => viewPreviousVisit(followupRelationship?.follow_up_of ?? followupParentId ?? 4)}>Compare with Previous Visit <Icon name="arrow" size={12} /></button></section>}
                       {isFollowup && <section className="patient-timeline-card"><div className="section-title section-title--small">Patient Timeline</div><div>{[1, 2, 3, 4, 5].map((visit) => <span className={visit === 5 ? "current" : ""} key={visit}>Visit #{visit}{visit === 5 && <small>Follow-up</small>}</span>)}</div></section>}
                     </>
                   ) : (
                     <section className="connected-card visit-history-card">
-                      {visitSaved && <button className="history-navigation-row" type="button" onClick={() => navigate(followupParentId ? "/patient/follow-up/summary" : "/patient/visit/summary")}><span><Icon name="visits" size={18} /></span><div><strong>Visit #5{followupParentId ? " — Follow-up" : ""}</strong><p>Just now · {savedVisitLanguage === "bn" ? "বাংলা" : "English"} · {consultationMode}</p></div><span className="badge badge--complete">Awaiting review</span><Icon name="arrow" size={14} /></button>}
-                      {demoVisits.map((visit) => <button className="history-navigation-row" type="button" key={visit.id} onClick={() => navigate(`/patient/visits/${visit.id}`)}><span><Icon name="visits" size={18} /></span><div><strong>Visit #{visit.id}</strong><p>{visit.date} · {visit.mode} · {visit.language}</p></div><span className="badge badge--complete">{visit.status}</span><Icon name="arrow" size={14} /></button>)}
+                      {visitSaved && followupParentId && <button className="history-navigation-row" type="button" onClick={() => navigate("/patient/follow-up/summary")}><span><Icon name="visits" size={18} /></span><div><strong>Simulated follow-up visit</strong><p>Not connected to local persistence</p></div><span className="badge badge--complete">Simulated</span><Icon name="arrow" size={14} /></button>}
+                      {visitApiAvailable === true ? (savedVisits.length ? savedVisits.map((visit) => <button className="history-navigation-row" type="button" key={visit.id} onClick={() => navigate(`/patient/visits/${visit.id}`)}><span><Icon name="visits" size={18} /></span><div><strong>Visit #{visit.id}</strong><p>{visit.date} · {visit.mode} · {visit.language}</p></div><span className="badge badge--complete">{visit.status}</span><Icon name="arrow" size={14} /></button>) : <p>No visits have been saved to the local API yet.</p>) : <>{visitApiError && <p>{visitApiError} Showing simulated history only.</p>}{demoVisits.map((visit) => <button className="history-navigation-row" type="button" key={visit.id} onClick={() => navigate(`/patient/visits/${visit.id}`)}><span><Icon name="visits" size={18} /></span><div><strong>Demo Visit #{visit.id}</strong><p>{visit.date} · {visit.mode} · {visit.language}</p></div><span className="badge badge--complete">Simulated · {visit.status}</span><Icon name="arrow" size={14} /></button>)}</>}
                     </section>
                   )}
                 </>
@@ -1177,8 +1363,8 @@ export default function App() {
                           <div><span>{isBangla ? "সংশ্লিষ্ট তথ্য" : "Associated information"}</span><strong>{reviewInformation.additional}</strong></div>
                         </div>
                       </section>
-                      <section className="review-short-summary"><span><Icon name="info" size={16} /></span><div><div className="section-title section-title--small">{isBangla ? "সংক্ষেপে" : "In short"}</div><p>{isBangla ? `এই সাক্ষাতে আপনি ${reviewInformation.timeline} ধরে ${reviewInformation.concern} থাকার কথা জানিয়েছেন। এটি ${reviewInformation.symptoms} এবং এর কারণে ${reviewInformation.additional}।` : `During this visit, you reported ${reviewInformation.concern.toLowerCase()} that has been present for ${reviewInformation.timeline.toLowerCase()} and is ${reviewInformation.symptoms.toLowerCase()}. You also mentioned ${reviewInformation.additional.toLowerCase()}.`}</p><small>{isBangla ? "AI-সংগঠিত সারাংশ · শুধুমাত্র আপনার কথোপকথনের ভিত্তিতে" : "AI-organized summary · Based only on your conversation"}</small></div></section>
-                      <section className="review-missing-card"><div className="section-title section-title--small">{isFollowup ? (isBangla ? "আজ আলোচনা করা হয়নি" : "Not discussed today") : isBangla ? "উল্লেখ করা হয়নি" : "Not mentioned"}</div><div><span>{isBangla ? "জ্বর" : "Fever"}</span><strong>{isFollowup ? (isBangla ? "আজ আলোচনা করা হয়নি" : "Not discussed today") : isBangla ? "উল্লেখ করা হয়নি" : "Not mentioned"}</strong></div><div><span>{isBangla ? "বর্তমানে নেওয়া ওষুধ" : "Medication currently being taken"}</span><strong>{isFollowup ? (isBangla ? "আজ আলোচনা করা হয়নি" : "Not discussed today") : isBangla ? "তথ্য দেওয়া হয়নি" : "Not provided"}</strong></div></section>
+                      <section className="review-short-summary"><span><Icon name="info" size={16} /></span><div><div className="section-title section-title--small">{isBangla ? "সংক্ষেপে" : "In short"}</div><p>{isBangla ? `এই সাক্ষাতে আপনি ${reviewInformation.timeline} ধরে ${reviewInformation.concern} থাকার কথা জানিয়েছেন। এটি ${reviewInformation.symptoms} এবং এর কারণে ${reviewInformation.additional}।` : `During this visit, you reported ${reviewInformation.concern.toLowerCase()} that has been present for ${reviewInformation.timeline.toLowerCase()} and is ${reviewInformation.symptoms.toLowerCase()}. You also mentioned ${reviewInformation.additional.toLowerCase()}.`}</p><small>{isBangla ? "স্থানীয়ভাবে তৈরি খসড়া · শুধুমাত্র কথোপকথনের ভিত্তিতে" : "Local draft · Based only on your conversation"}</small></div></section>
+                      <section className="review-missing-card"><div className="section-title section-title--small">{isBangla ? "উল্লেখ করা হয়নি" : "Not reported / unknown"}</div>{activeVisit && !isFollowup ? activeVisit.notMentioned.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>) : <><div><span>{isBangla ? "জ্বর" : "Fever"}</span><strong>{isFollowup ? (isBangla ? "আজ আলোচনা করা হয়নি" : "Not discussed today") : "Not provided"}</strong></div><div><span>{isBangla ? "বর্তমানে নেওয়া ওষুধ" : "Medication currently being taken"}</span><strong>{isFollowup ? (isBangla ? "আজ আলোচনা করা হয়নি" : "Not discussed today") : "Not provided"}</strong></div></>}</section>
                     </aside>
                   </div>
 
@@ -1192,10 +1378,10 @@ export default function App() {
                 <section className="consultation-workspace">
                   <div className="consultation-primary-panel">
                     <div className="consultation-toolbar"><div><strong>{isBangla ? "CARETAI চ্যাট" : "CARETAI Chat"}</strong><span>{isBangla ? "তথ্য সংগ্রহ চলছে" : "Information collection in progress"}</span></div><div className="consultation-language">{(["English", "বাংলা"] as const).map((language) => <button className={consultationLanguage === language ? "active" : ""} type="button" key={language} onClick={() => changeConsultationLanguage(language)}>{language}</button>)}</div></div>
-                    <div className="consultation-conversation">{chatMessages.map((message, index) => <div className={`consultation-message ${message.author === "Chaiti" ? "consultation-message--patient" : ""}`} key={`${message.author}-${index}`}><span>{message.author}</span><p>{message.text}</p></div>)}</div>
-                    <div className="consultation-composer"><textarea value={chatDraft} aria-label="Chat response" placeholder={isBangla ? "আপনার উত্তর লিখুন…" : "Type your response…"} onChange={(event) => setChatDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendChatMessage(); } }} /><button type="button" onClick={sendChatMessage} disabled={!chatDraft.trim()}><Icon name="arrow" size={17} /></button></div>
+                    <div className="consultation-conversation">{chatMessages.map((message, index) => <div className={`consultation-message ${message.author !== "CARETAI" ? "consultation-message--patient" : ""}`} key={`${message.author}-${index}`}><span>{message.author}</span><p>{message.text}</p></div>)}</div>
+                    <div className="consultation-composer"><textarea value={chatDraft} aria-label="Chat response" placeholder={activeVisitId ? (isBangla ? "আপনার উত্তর লিখুন…" : "Type your response…") : (isBangla ? "আপনার প্রধান সমস্যাটি লিখুন…" : "Describe the main concern to start…")} onChange={(event) => setChatDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendChatMessage(); } }} /><button type="button" onClick={sendChatMessage} disabled={!chatDraft.trim()}><Icon name="arrow" size={17} /></button></div>
                   </div>
-                  <aside className="consultation-side-panel"><div className="consultation-side-section"><span>{isFollowup ? (isBangla ? "আজ জানানো হয়েছে" : "Reported Today") : isBangla ? "বর্তমান সংগৃহীত তথ্য" : "Current extracted information"}</span><strong>{isFollowup ? (isBangla ? "কাশি আগের চেয়ে ভালো · রাতে কম" : "Cough improved · Less frequent at night") : isBangla ? "জ্বর · ক্ষুধা কম" : "Fever · Reduced appetite"}</strong><p>{isFollowup ? (isBangla ? "নতুন: গলায় অস্বস্তি" : "New: Throat discomfort") : isBangla ? "দুই দিন আগে শুরু" : "Started two days ago"}</p></div><div className="consultation-progress"><span>{isBangla ? "ভিজিটের অগ্রগতি" : "Visit progress"}</span><div><i /></div><strong>{isBangla ? "৭টির মধ্যে ৪টি অংশ" : "4 of 7 sections"}</strong></div><Button onClick={finishConsultation}>{isBangla ? "ভিজিট শেষ করুন" : "End Visit"} <Icon name="arrow" size={13} /></Button></aside>
+                  <aside className="consultation-side-panel"><div className="consultation-side-section"><span>{isFollowup ? (isBangla ? "আজ জানানো হয়েছে" : "Reported Today") : isBangla ? "বর্তমান সংগৃহীত তথ্য" : "Current reported information"}</span><strong>{isFollowup ? (isBangla ? "কাশি আগের চেয়ে ভালো · রাতে কম" : "Cough improved · Less frequent at night") : activeVisit?.mainConcern || (isBangla ? "প্রথম উত্তরটি এখনো সংরক্ষিত হয়নি" : "Waiting for your first response")}</strong><p>{isFollowup ? (isBangla ? "নতুন: গলায় অস্বস্তি" : "New: Throat discomfort") : activeVisit?.pattern || activeVisit?.onset || (isBangla ? "আরও তথ্য কথোপকথনের সঙ্গে সংরক্ষিত হবে" : "Details will appear as you respond")}</p></div><div className="consultation-progress"><span>{isBangla ? "ভিজিটের অগ্রগতি" : "Visit progress"}</span><div><i style={{ width: `${conversationProgress.total ? (conversationProgress.answered / conversationProgress.total) * 100 : 0}%` }} /></div><strong>{isBangla ? `${conversationProgress.total}টির মধ্যে ${conversationProgress.answered}টি উত্তর` : `${conversationProgress.answered} of ${conversationProgress.total} answers`}</strong></div><Button onClick={finishConsultation}>{isBangla ? "ভিজিট শেষ করুন" : "End Visit"} <Icon name="arrow" size={13} /></Button></aside>
                 </section>
               ) : isVoice ? (
                 <section className="voice-consultation-layout">
@@ -1209,7 +1395,7 @@ export default function App() {
                   </div>
                   <div className="voice-information-column">
                     <section className="connected-card live-transcript-card"><div className="section-title section-title--small">{isBangla ? "লাইভ ট্রান্সক্রিপ্ট" : "Live Transcript"}</div><p><strong>{isBangla ? "চৈতি" : "Chaiti"}:</strong> {voiceTranscript}</p><div className="voice-response-block"><span>{isBangla ? "CARETAI-এর উত্তর" : "CARETAI response"}</span><p>{voiceResponse}</p></div></section>
-                    <section className="connected-card voice-extracted-card"><div className="section-title section-title--small">{isFollowup ? (isBangla ? "আজ জানানো হয়েছে" : "Reported Today") : isBangla ? "বর্তমান সংগৃহীত তথ্য" : "Current Extracted Information"}</div><div><span>{isBangla ? "সমস্যা" : "Concern"}</span><strong>{isFollowup ? (isBangla ? "কাশি আগের চেয়ে ভালো" : "Cough improved") : isBangla ? "জ্বর, কাশি এবং ক্ষুধা কম" : "Fever, cough, and reduced appetite"}</strong></div><div><span>{isBangla ? "পরিবর্তন" : "Change"}</span><strong>{isFollowup ? (isBangla ? "রাতে কম · ঘুম ভালো" : "Less frequent at night · Sleep improved") : isBangla ? "দুই দিন" : "Two days"}</strong></div><div className="consultation-progress"><span>{isBangla ? "ভিজিটের অগ্রগতি" : "Visit progress"}</span><div><i /></div><strong>{isBangla ? "৭টির মধ্যে ৪টি অংশ" : "4 of 7 sections"}</strong></div></section>
+                    <section className="connected-card voice-extracted-card"><div className="section-title section-title--small">{isFollowup ? (isBangla ? "আজ জানানো হয়েছে" : "Reported Today") : isBangla ? "বর্তমান সংগৃহীত তথ্য" : "Current Reported Information"}</div><div><span>{isBangla ? "সমস্যা" : "Concern"}</span><strong>{isFollowup ? (isBangla ? "কাশি আগের চেয়ে ভালো" : "Cough improved") : activeVisit?.mainConcern || "Waiting for first response"}</strong></div><div><span>{isBangla ? "সময়কাল / ধরণ" : "Timeline / Pattern"}</span><strong>{isFollowup ? (isBangla ? "রাতে কম · ঘুম ভালো" : "Less frequent at night · Sleep improved") : [activeVisit?.onset, activeVisit?.pattern].filter(Boolean).join(" · ") || "Not reported yet"}</strong></div><div className="consultation-progress"><span>{isBangla ? "ভিজিটের অগ্রগতি" : "Visit progress"}</span><div><i style={{ width: `${conversationProgress.total ? (conversationProgress.answered / conversationProgress.total) * 100 : 0}%` }} /></div><strong>{isBangla ? `${conversationProgress.total}টির মধ্যে ${conversationProgress.answered}টি উত্তর` : `${conversationProgress.answered} of ${conversationProgress.total} answers`}</strong></div></section>
                   </div>
                 </section>
               ) : (

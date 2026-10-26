@@ -1,15 +1,12 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
+import DoctorDashboard from "../dashboard/DoctorDashboard";
 import DoctorPatientProfile from "../patients/DoctorPatientProfile";
 import DoctorVisitReviews from "../consultation-review/DoctorVisitReviews";
 import DoctorReports from "../reports/DoctorReports";
 import DoctorCarePlans from "../care-plans/DoctorCarePlans";
-import {
-  buildAttentionQueue,
-  buildRecentPatients,
-  countAttention,
-  type AttentionCategory,
-} from "../data/doctorDashboardData";
+import type { QueueFilter } from "../dashboard/DoctorDashboard";
+import { listVisits, type ApiVisitSummary } from "../../app/api";
 
 type DoctorIconName =
   | "brand"
@@ -63,6 +60,12 @@ function DoctorIcon({ name, size = 20 }: { name: DoctorIconName; size?: number }
   };
   return <svg {...common}>{paths[name]}</svg>;
 }
+
+// The doctor account this demo workspace is signed in as. Kept in one place so
+// the sidebar, the profile menu, and the dashboard greeting never drift apart.
+const DOCTOR_FULL_NAME = "Dr. Sarah Rahman";
+const DOCTOR_FIRST_NAME = "Sarah";
+const DOCTOR_INITIALS = "SR";
 
 type WorkflowStatus = "New / Pending" | "Under Review" | "More Information Needed" | "Care Plan Confirmed" | "Follow-up Needed";
 
@@ -120,26 +123,6 @@ const doctorNav: { label: string; route: string; icon: DoctorIconName }[] = [
   { label: "Settings", route: "/doctor/settings", icon: "settings" },
 ];
 
-const DISCLAIMER = "This tool collects information for a doctor; it does not provide a diagnosis.";
-
-type QueueFilter = "all" | "review" | "info" | "followUp" | "carePlan";
-
-const CATEGORY_LABEL: Record<AttentionCategory, string> = {
-  "new-review": "New visit",
-  "under-review": "Under review",
-  "info-needed": "Info needed",
-  "follow-up": "Follow-up",
-  "care-plan": "Care plan",
-};
-
-const CATEGORY_ICON: Record<AttentionCategory, DoctorIconName> = {
-  "new-review": "clipboard",
-  "under-review": "search",
-  "info-needed": "info",
-  "follow-up": "calendar",
-  "care-plan": "care",
-};
-
 export default function DoctorApp() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -151,6 +134,16 @@ export default function DoctorApp() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [directorySearch, setDirectorySearch] = useState("");
   const [directoryStatus, setDirectoryStatus] = useState<WorkflowStatus | "All">("All");
+  const [savedVisits, setSavedVisits] = useState<ApiVisitSummary[] | null>(null);
+  const [savedVisitsError, setSavedVisitsError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    listVisits()
+      .then((visits) => { if (mounted) { setSavedVisits(visits); setSavedVisitsError(""); } })
+      .catch((error: Error) => { if (mounted) { setSavedVisits(null); setSavedVisitsError(error.message); } });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     if (location.pathname === "/doctor" || location.pathname === "/doctor/") navigate("/doctor/dashboard", { replace: true });
@@ -177,27 +170,7 @@ export default function DoctorApp() {
     setProfileOpen(false);
   };
 
-  const normalizedSearch = search.trim().toLowerCase();
-
-  const attentionItems = useMemo(() => buildAttentionQueue(doctorPatients), []);
-  const attentionCounts = useMemo(() => countAttention(attentionItems), [attentionItems]);
-  const recentPatients = useMemo(() => buildRecentPatients(doctorPatients, 5), []);
-
-  const queueItems = attentionItems.filter((item) => {
-    const matchesFilter = attentionFilter === "all"
-      || (attentionFilter === "review" && (item.category === "new-review" || item.category === "under-review"))
-      || (attentionFilter === "info" && item.category === "info-needed")
-      || (attentionFilter === "followUp" && item.category === "follow-up")
-      || (attentionFilter === "carePlan" && item.category === "care-plan");
-    const matchesSearch = !normalizedSearch
-      || item.patientName.toLowerCase().includes(normalizedSearch)
-      || item.patientCode.toLowerCase().includes(normalizedSearch)
-      || item.patientId.toLowerCase().includes(normalizedSearch);
-    return matchesFilter && matchesSearch;
-  });
-
-  const selectedPatientId = location.pathname.match(/^\/doctor\/patients\/([^/]+)$/)?.[1];
-  const selectedPatient = selectedPatientId ? doctorPatients.find((patient) => patient.id === selectedPatientId) : null;
+  const selectedPatientId = location.pathname.match(/^\/doctor\/patients\/([^/]+)$/)?.[1];  const selectedPatient = selectedPatientId ? doctorPatients.find((patient) => patient.id === selectedPatientId) : null;
   const sectionTitle = activeNav === "Dashboard" ? "Doctor Dashboard" : activeNav;
 
   const normalizedDirectorySearch = directorySearch.trim().toLowerCase();
@@ -224,140 +197,29 @@ export default function DoctorApp() {
             {doctorNav.map((item) => <button className={activeNav === item.label ? "active" : ""} type="button" key={item.label} onClick={() => navigateDoctor(item.route)}><DoctorIcon name={item.icon} size={18} /><span>{item.label}</span></button>)}
           </nav>
         </div>
-        <div className="doctor-account"><div className="doctor-avatar">SR</div><div><strong>Dr. Sarah Rahman</strong><span>Doctor</span></div><button type="button" aria-label="Log out" onClick={() => setLogoutOpen(true)}><DoctorIcon name="logout" size={17} /></button></div>
+        <div className="doctor-account"><div className="doctor-avatar">{DOCTOR_INITIALS}</div><div><strong>{DOCTOR_FULL_NAME}</strong><span>Doctor</span></div><button type="button" aria-label="Log out" onClick={() => setLogoutOpen(true)}><DoctorIcon name="logout" size={17} /></button></div>
       </aside>
 
       <main className="doctor-main">
         <header className="doctor-header">
-          <div className="doctor-header__title"><button type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><DoctorIcon name="menu" size={19} /></button><div><strong>{sectionTitle}</strong><p>{activeNav === "Dashboard" ? "Review your patients and manage their ongoing care." : "CARETAI doctor workspace"}</p></div></div>
+          <div className="doctor-header__title"><button type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><DoctorIcon name="menu" size={19} /></button><div><strong>{sectionTitle}</strong><p>{activeNav === "Dashboard" ? "Review visits, follow up with patients, and manage care plans." : "CARETAI doctor workspace"}</p></div></div>
           <div className="doctor-header__actions">
             <label className="doctor-search"><DoctorIcon name="search" size={16} /><input value={search} placeholder="Search patients..." onChange={(event) => { setSearch(event.target.value); if (location.pathname !== "/doctor/dashboard") navigate("/doctor/dashboard"); }} />{search && <button type="button" aria-label="Clear search" onClick={() => setSearch("")}>×</button>}</label>
             <div className="doctor-notification-control"><button className="doctor-icon-button" type="button" aria-label="Notifications, 3 unread" onClick={() => setNotificationsOpen(!notificationsOpen)}><DoctorIcon name="bell" size={19} /><span>3</span></button>{notificationsOpen && <div className="doctor-notification-menu"><div><strong>Notifications</strong><span>3 unread</span></div><button type="button" onClick={() => navigateDoctor("/doctor/patients/ayan-ahmed")}><i /><span><strong>New visit confirmed</strong><p>Ayan Ahmed · Visit #4</p></span></button><button type="button" onClick={() => { setAttentionFilter("info"); navigateDoctor("/doctor/dashboard"); }}><i /><span><strong>Patient information received</strong><p>Rafi Ahmed responded to your request.</p></span></button><button type="button" onClick={() => navigateDoctor("/doctor/notifications")}>View all notifications <DoctorIcon name="arrow" size={12} /></button></div>}</div>
-            <div className="doctor-profile-control"><button className="doctor-avatar doctor-avatar--button" type="button" aria-label="Open doctor profile" onClick={() => setProfileOpen(!profileOpen)}>SR</button>{profileOpen && <div className="doctor-profile-menu"><div><strong>Dr. Sarah Rahman</strong><span>Doctor</span></div><button type="button" onClick={() => navigateDoctor("/doctor/settings")}><DoctorIcon name="settings" size={15} /> Settings</button><button type="button" onClick={() => setLogoutOpen(true)}><DoctorIcon name="logout" size={15} /> Log out</button></div>}</div>
+            <div className="doctor-profile-control"><button className="doctor-avatar doctor-avatar--button" type="button" aria-label="Open doctor profile" onClick={() => setProfileOpen(!profileOpen)}>{DOCTOR_INITIALS}</button>{profileOpen && <div className="doctor-profile-menu"><div><strong>{DOCTOR_FULL_NAME}</strong><span>Doctor</span></div><button type="button" onClick={() => navigateDoctor("/doctor/settings")}><DoctorIcon name="settings" size={15} /> Settings</button><button type="button" onClick={() => setLogoutOpen(true)}><DoctorIcon name="logout" size={15} /> Log out</button></div>}</div>
           </div>
         </header>
 
         {location.pathname === "/doctor/dashboard" && (
-          <div className="doctor-dashboard">
-            <section className="doctor-intro">
-              <div>
-                <span>Clinical work queue</span>
-                <h1>Welcome back, Dr. Sarah</h1>
-                <p>Review visits, follow up with patients, and manage care plans.</p>
-              </div>
-              <div>
-                <strong>{attentionCounts.total}</strong>
-                <span>Items need attention</span>
-              </div>
-            </section>
-
-            <section className="doctor-metrics" aria-label="Work overview">
-              {([
-                { key: "review", icon: "visits", count: attentionCounts.review, label: "Visits awaiting review", hint: "New and in-progress reviews" },
-                { key: "info", icon: "info", count: attentionCounts.info, label: "Patients awaiting information", hint: "Responses requested from patients" },
-                { key: "followUp", icon: "calendar", count: attentionCounts.followUp, label: "Follow-ups requiring attention", hint: "Follow-ups due across your patients" },
-                { key: "carePlan", icon: "care", count: attentionCounts.carePlan, label: "Care-plan items to review", hint: "Shared reports or overdue steps" },
-              ] as const).map((metric) => (
-                <button
-                  className={`doctor-metric doctor-metric--${metric.key} ${attentionFilter === metric.key ? "active" : ""}`}
-                  type="button"
-                  key={metric.key}
-                  aria-pressed={attentionFilter === metric.key}
-                  onClick={() => setAttentionFilter((current) => (current === metric.key ? "all" : metric.key))}
-                >
-                  <span className="doctor-metric__icon"><DoctorIcon name={metric.icon} size={17} /></span>
-                  <span className="doctor-metric__body">
-                    <strong>{metric.count}</strong>
-                    <span>{metric.label}</span>
-                    <small>{metric.hint}</small>
-                  </span>
-                </button>
-              ))}
-            </section>
-
-            <div className="doctor-dashboard-layout">
-              <section className="doctor-queue" aria-label="Needs your attention">
-                <div className="doctor-section-heading">
-                  <div>
-                    <h2>Needs Your Attention</h2>
-                    <p>{queueItems.length} item{queueItems.length === 1 ? "" : "s"}{attentionFilter === "all" ? " in your work queue" : " in this view"}</p>
-                  </div>
-                  {attentionFilter !== "all" && (
-                    <button className="doctor-queue__clear" type="button" onClick={() => setAttentionFilter("all")}>Show all</button>
-                  )}
-                </div>
-
-                {queueItems.length ? (
-                  <div className="doctor-queue-list">
-                    {queueItems.map((item) => (
-                      <article className="doctor-queue-item" key={item.id}>
-                        <button
-                          className="doctor-queue-item__main"
-                          type="button"
-                          aria-label={`Open full profile for ${item.patientName}`}
-                          onClick={() => openPatient(item.patientId)}
-                        >
-                          <span className="doctor-patient-avatar">{item.initials}</span>
-                          <span className="doctor-queue-item__body">
-                            <span className="doctor-queue-item__who"><strong>{item.patientName}</strong><em>{item.patientCode}</em></span>
-                            <span className="doctor-queue-item__reason">{item.reason}</span>
-                            <span className="doctor-queue-item__meta">
-                              <DoctorIcon name={CATEGORY_ICON[item.category]} size={11} /> {CATEGORY_LABEL[item.category]}
-                              {item.date ? <> · <DoctorIcon name="calendar" size={11} /> {item.date}</> : null}
-                            </span>
-                          </span>
-                        </button>
-                        <div className="doctor-queue-item__side">
-                          <span className={`doctor-queue-tag doctor-queue-tag--${item.category}`}>{CATEGORY_LABEL[item.category]}</span>
-                          <button
-                            className="doctor-queue-item__action"
-                            type="button"
-                            onClick={() => (item.category === "care-plan" ? navigateDoctor("/doctor/care-plans") : openPatient(item.patientId))}
-                          >
-                            {item.action} <DoctorIcon name="arrow" size={12} />
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="doctor-queue-empty">
-                    <span><DoctorIcon name={attentionFilter === "all" ? "check" : "search"} size={22} /></span>
-                    <strong>{attentionFilter === "all" ? "Nothing needs your attention right now." : "No items in this view."}</strong>
-                    <p>{attentionFilter === "all" ? "New visits, follow-ups, and care-plan updates will appear here." : "Choose Show all to see the full work queue."}</p>
-                  </div>
-                )}
-              </section>
-
-              <aside className="doctor-side">
-                <section className="doctor-side-card">
-                  <div className="doctor-side-card__head"><h3>Quick links</h3></div>
-                  <div className="doctor-quicklinks">
-                    <button type="button" onClick={() => navigateDoctor("/doctor/visits")}><span><DoctorIcon name="visits" size={16} /></span><div><strong>Visit Reviews</strong><small>Review reported visits</small></div><DoctorIcon name="arrow" size={13} /></button>
-                    <button type="button" onClick={() => navigateDoctor("/doctor/patients")}><span><DoctorIcon name="patients" size={16} /></span><div><strong>Patients</strong><small>Open the patient directory</small></div><DoctorIcon name="arrow" size={13} /></button>
-                    <button type="button" onClick={() => navigateDoctor("/doctor/reports")}><span><DoctorIcon name="reports" size={16} /></span><div><strong>Reports</strong><small>Check document status</small></div><DoctorIcon name="arrow" size={13} /></button>
-                    <button type="button" onClick={() => navigateDoctor("/doctor/care-plans")}><span><DoctorIcon name="care" size={16} /></span><div><strong>Care Plans</strong><small>Track approved plan items</small></div><DoctorIcon name="arrow" size={13} /></button>
-                  </div>
-                </section>
-
-                <section className="doctor-side-card">
-                  <div className="doctor-side-card__head"><h3>Recently active</h3><span>By latest visit</span></div>
-                  <div className="doctor-recent">
-                    {recentPatients.map((patient) => (
-                      <button className="doctor-recent-item" type="button" key={patient.patientId} onClick={() => openPatient(patient.patientId)} aria-label={`Open full profile for ${patient.patientName}`}>
-                        <span className="doctor-patient-avatar doctor-patient-avatar--sm">{patient.initials}</span>
-                        <span className="doctor-recent-item__body"><strong>{patient.patientName}</strong><small>{patient.patientCode} · Visit #{patient.visitNumber}</small></span>
-                        <span className="doctor-recent-item__date">{patient.visitDate}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <button className="doctor-side-link" type="button" onClick={() => navigateDoctor("/doctor/patients")}>View all patients <DoctorIcon name="arrow" size={12} /></button>
-                </section>
-              </aside>
-            </div>
-
-            <p className="doctor-dashboard__disclaimer"><DoctorIcon name="info" size={13} /> {DISCLAIMER}</p>
-          </div>
+          <DoctorDashboard
+            patients={doctorPatients}
+            onOpenPatient={openPatient}
+            onNavigate={navigateDoctor}
+            search={search}
+            filter={attentionFilter}
+            onFilterChange={setAttentionFilter}
+            doctorFirstName={DOCTOR_FIRST_NAME}
+          />
         )}
 
         {selectedPatientId && (
@@ -386,7 +248,7 @@ export default function DoctorApp() {
         )}
 
         {activeNav === "Visit Reviews" && !selectedPatientId && (
-          <DoctorVisitReviews patients={doctorPatients} onOpenPatient={openPatient} />
+          <DoctorVisitReviews patients={doctorPatients} savedVisits={savedVisits} apiError={savedVisitsError} onOpenPatient={openPatient} />
         )}
 
         {activeNav === "Reports" && !selectedPatientId && (
